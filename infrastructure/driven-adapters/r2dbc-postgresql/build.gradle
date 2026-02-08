@@ -1,0 +1,22 @@
+dependencies {
+    implementation project(':model')
+    implementation 'org.springframework:spring-context'
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    implementation 'org.springframework.security:spring-security-crypto'
+    implementation 'jakarta.persistence:jakarta.persistence-api' 
+    implementation 'io.asyncer:r2dbc-mysql:1.1.3'
+    implementation 'org.reactivecommons.utils:object-mapper-api:0.1.0'
+
+    // Flyway para migraciones de base de datos (requiere JDBC driver)
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    //mapper
+    implementation 'org.reactivecommons.utils:object-mapper-api:0.1.0'
+    testImplementation 'org.reactivecommons.utils:object-mapper:0.1.0'
+
+    testImplementation 'org.reactivecommons.utils:object-mapper:0.1.0'
+}
+

@@ -1,0 +1,151 @@
+
+**CONTEXTO**
+Tenemos dos backends:
+
+* Backend existente (referencia): #kodianteach-ssp-backend
+* Backend nuevo (objetivo): **Atlas**
+
+Quiero que tomes el backend **kodianteach-ssp-backend* como **fuente de verdad**, y construyas/ajustes el backend **Atlas** para que quede **con la misma estructura, configuraciones y flujo end-to-end**, sin cambiar el comportamiento esperado.
+
+---
+
+### 0) Reglas obligatorias (NO negociables)
+
+1. **PROHIBIDO adivinar** rutas, clases, configuración, nombres de properties, beans, security filters, etc.
+   Todo debe salir de lo que existe en **kodianteach-ssp-backend** (comparando archivo por archivo).
+2. **Copia el patrón, no el texto**: replica el enfoque/arquitectura y adapta nombres y paquetes a Atlas.
+3. **No rompas compatibilidad**: los cambios deben ser incrementales, compilables y consistentes.
+4. **Mantén la arquitectura por capas** tal como está en kodianteach-ssp-backend:
+
+   * Controllers / Entry Points
+   * Application / Use cases
+   * Infrastructure / Adapters (R2DBC, config, security, etc.)
+5. Si falta algo en Atlas (clase, config, yml, dependencias, etc.), **créalo** siguiendo exactamente el patrón de kodianteach-ssp-backend.
+6. **Debe compilar** y la aplicación debe iniciar sin errores.
+7. Si algo es incierto, **no implementes a ciegas**: primero localiza el equivalente en kodianteach-ssp-backend y luego replica.
+
+---
+
+### 1) Objetivo principal
+
+Realiza un **análisis end-to-end** del backend **kodianteach-ssp-backend**, identificando:
+
+* Cómo está configurada la capa de **controladores**
+* Cómo está organizada la capa **application**
+* Cómo está implementada la capa de **persistencia con R2DBC**
+* Cómo se manejan **migraciones** y la configuración de base de datos
+* Cómo se configura **Swagger/OpenAPI**
+* Cómo está implementado el **login/authentication**
+* Cómo está resuelto el **multi-tenant** (tenant resolution, tenant context, filtros, headers, claims, DB routing, etc.)
+
+Con base en ese análisis, implementa en **Atlas** la **misma configuración y el mismo flujo**, ajustando únicamente nombres/paquetes/props propias de Atlas.
+
+---
+
+### 2) Alcance técnico (lo que debes replicar en Atlas)
+
+#### 2.1 Estructura y capas
+
+* Replica estructura de paquetes, módulos (si aplica) y convenciones.
+* Asegura que Atlas tenga la misma separación de responsabilidades.
+
+#### 2.2 Base de datos, R2DBC y migraciones
+
+* Identifica en kodianteach-ssp-backend:
+
+  * Dependencias (Gradle/Maven)
+  * Configuración de conexión (application.yml/properties)
+  * Pooling / timeouts
+  * Estrategia de migraciones (Flyway/Liquibase u otra)
+  * Ubicación de scripts y naming convention
+* Implementa en Atlas:
+
+  * La misma estrategia y estructura
+  * La misma forma de inicializar DB/migraciones
+  * Ajustando únicamente credenciales, nombres de schema, y properties de Atlas
+
+#### 2.3 Swagger / OpenAPI
+
+* Identifica exactamente:
+
+  * Librería usada (springdoc, springfox, etc.)
+  * Configuración (beans, groups, security schemes)
+  * Rutas (ej: `/swagger-ui`, `/v3/api-docs`, etc.)
+* Replica en Atlas:
+
+  * Mismos endpoints, seguridad, metadatos, grupos
+  * Misma forma de exponer y proteger documentación (si aplica)
+
+#### 2.4 Login / Seguridad / Auth
+
+* Identifica en kodianteach-ssp-backend:
+
+  * Tipo de auth (JWT, OAuth2, Basic, etc.)
+  * Filtros, providers, security config
+  * DTOs de login, endpoints, errores
+  * Generación/validación de token
+  * Claims, expiración, refresh (si existe)
+* Implementa en Atlas:
+
+  * Mismo flujo y comportamiento
+  * Misma estructura y separación (controller → application → adapters)
+  * Misma política de errores/respuestas
+
+#### 2.5 Multi-tenant
+
+* Identifica en kodianteach-ssp-backend:
+
+  * Cómo se resuelve el tenant (header, subdomain, token claim, etc.)
+  * Cómo se guarda el tenant en contexto (ThreadLocal/reactor context)
+  * Cómo se aplica al acceso a datos (routing, schema, query filtering, etc.)
+  * Qué pasa cuando el tenant falta o es inválido
+* Replica en Atlas:
+
+  * La misma lógica completa end-to-end
+  * Con validaciones equivalentes
+
+---
+
+### 3) Entregables obligatorios
+
+1. **Checklist comparativo** (kodianteach-ssp-backend vs Atlas): qué existe, qué falta, qué se replicó.
+2. **README en Atlas** con:
+
+   * Estructura del proyecto por capas
+   * Cómo correr Atlas local
+   * Configuración de env vars / application.yml
+   * Cómo correr migraciones
+   * Cómo usar Swagger
+   * Flujo de login (request/response) y ejemplo de uso
+   * Cómo funciona multi-tenant (cómo enviar tenant y ejemplos)
+3. **Cambios realizados** listados por archivo (ruta + breve descripción).
+4. Si existen pruebas en kodianteach-ssp-backend para security/tenant/db, crea o adapta pruebas equivalentes para Atlas.
+
+---
+
+### 4) Orden de trabajo obligatorio (paso a paso)
+
+1. Mapear en kodianteach-ssp-backend: estructura + dependencias + configs clave.
+2. Identificar piezas: DB/R2DBC/migrations + Swagger + Security/Login + Multi-tenant.
+3. Crear el esqueleto equivalente en Atlas si no existe.
+4. Implementar por bloques (DB → migrations → swagger → auth → multitenant).
+5. Verificar:
+
+   * Compila
+   * Arranca
+   * Migraciones ejecutan
+   * Swagger abre
+   * Login responde
+   * Tenant se exige/aplica correctamente
+
+---
+
+### 5) Restricciones finales
+
+* **No reestructures por preferencia personal**. Solo replica el patrón existente.
+* **No cambies contratos** (endpoints, payloads, status codes) salvo que Atlas lo exija explícitamente y esté documentado.
+* Si encuentras diferencias inevitables, documéntalas en el README como “Diferencias justificadas”.
+
+---
+
+Si quieres, puedo también generarte una versión “ultra estricta” que incluya **plantilla exacta del README**, secciones obligatorias, y formato de checklist (tipo tabla) para que Copilot lo entregue casi “copiar/pegar”.

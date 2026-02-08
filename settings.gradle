@@ -1,0 +1,31 @@
+pluginManagement {
+    repositories {
+        //mavenLocal()
+        gradlePluginPortal()
+    }
+}
+
+buildCache {
+    local {
+        directory = new File(rootDir, 'build-cache')
+    }
+}
+
+rootProject.name = 'AtlasPlatform'
+
+include ':app-service'
+include ':model'
+include ':usecase'
+project(':app-service').projectDir = file('./applications/app-service')
+project(':model').projectDir = file('./domain/model')
+project(':usecase').projectDir = file('./domain/usecase')
+include ':r2dbc-postgresql'
+project(':r2dbc-postgresql').projectDir = file('./infrastructure/driven-adapters/r2dbc-postgresql')
+include ':notification'
+project(':notification').projectDir = file('./infrastructure/driven-adapters/notification')
+include ':reactive-web'
+project(':reactive-web').projectDir = file('./infrastructure/entry-points/reactive-web')
+include ':jwt-helper'
+project(':jwt-helper').projectDir = file('./infrastructure/helpers/jwt-helper')
+include ':tenant-context'
+project(':tenant-context').projectDir = file('./infrastructure/helpers/tenant-context')

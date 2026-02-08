@@ -1,0 +1,73 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: "AtlasPlatform"
+  devtools:
+    add-properties: false
+  profiles:
+    include: null
+  # Configuración R2DBC para conexión reactiva a MySQL
+  r2dbc:
+    url: r2dbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:atlas_platform}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:12345}
+    pool:
+      enabled: true
+      initial-size: 12
+      max-size: 15
+      max-idle-time: 30m
+      validation-query: SELECT 1
+  # Configuración Flyway para migraciones (usa JDBC ya que Flyway no soporta R2DBC directamente)
+  flyway:
+    enabled: true
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:atlas_platform}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    user: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:12345}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+    out-of-order: false
+    clean-disabled: true
+
+# Propiedades personalizadas para el adaptador R2DBC
+adapters:
+  r2dbc:
+    host: ${DB_HOST:localhost}
+    port: ${DB_PORT:3306}
+    database: ${DB_NAME:atlas_platform}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:12345}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:8080"
+
+# Configuración JWT
+jwt:
+  secret: ${JWT_SECRET:MiClaveSecretaMuySeguraParaJWTDeAlMenos256BitsParaHS256AlgorithmAtlas2026}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:86400000}
+  issuer: ${JWT_ISSUER:atlas-platform}
+
+# Configuración Swagger/OpenAPI
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+
