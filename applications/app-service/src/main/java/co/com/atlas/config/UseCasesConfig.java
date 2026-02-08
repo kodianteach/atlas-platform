@@ -26,6 +26,7 @@ import co.com.atlas.usecase.access.AccessCodeUseCase;
 import co.com.atlas.usecase.preregistration.ActivateAdminUseCase;
 import co.com.atlas.usecase.preregistration.CompleteOnboardingUseCase;
 import co.com.atlas.usecase.preregistration.PreRegisterAdminUseCase;
+import co.com.atlas.usecase.preregistration.ResendPreRegistrationUseCase;
 import co.com.atlas.usecase.auth.LoginUseCase;
 import co.com.atlas.usecase.auth.RefreshTokenUseCase;
 import co.com.atlas.usecase.auth.RegisterUserUseCase;
@@ -177,6 +178,19 @@ public class UseCasesConfig {
             PreRegistrationAuditRepository auditRepository,
             NotificationGateway notificationGateway) {
         return new PreRegisterAdminUseCase(
+                authUserRepository,
+                tokenRepository,
+                auditRepository,
+                notificationGateway);
+    }
+
+    @Bean
+    public ResendPreRegistrationUseCase resendPreRegistrationUseCase(
+            AuthUserRepository authUserRepository,
+            AdminActivationTokenRepository tokenRepository,
+            PreRegistrationAuditRepository auditRepository,
+            NotificationGateway notificationGateway) {
+        return new ResendPreRegistrationUseCase(
                 authUserRepository,
                 tokenRepository,
                 auditRepository,

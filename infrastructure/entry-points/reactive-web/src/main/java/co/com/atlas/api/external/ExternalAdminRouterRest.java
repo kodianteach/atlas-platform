@@ -234,12 +234,53 @@ public class ExternalAdminRouterRest {
                                     )
                             }
                     )
+            ),
+            @RouterOperation(
+                    path = "/api/external/admin/resend",
+                    method = RequestMethod.POST,
+                    beanClass = ExternalAdminHandler.class,
+                    beanMethod = "resend",
+                    operation = @Operation(
+                            operationId = "resendPreRegistration",
+                            summary = "Reenviar email de pre-registro",
+                            description = """
+                                    Reenvía el email de activación a un usuario ya pre-registrado.
+                                    
+                                    Este endpoint se usa cuando:
+                                    - El usuario no recibió el email original
+                                    - El token anterior expiró
+                                    - Se necesita regenerar credenciales temporales
+                                    
+                                    El sistema:
+                                    - Invalida tokens anteriores pendientes
+                                    - Genera nuevo token y contraseña temporal
+                                    - Envía email con las nuevas credenciales
+                                    - Registra la acción en auditoría
+                                    """,
+                            tags = {"Pre-Registro Externo"},
+                            requestBody = @RequestBody(
+                                    required = true,
+                                    content = @Content(schema = @Schema(implementation = ExternalAdminHandler.ResendRequest.class))
+                            ),
+                            responses = {
+                                    @ApiResponse(
+                                            responseCode = "200",
+                                            description = "Email reenviado exitosamente"
+                                    ),
+                                    @ApiResponse(
+                                            responseCode = "400",
+                                            description = "Usuario no encontrado o no está en estado pre-registrado",
+                                            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+                                    )
+                            }
+                    )
             )
     })
     public RouterFunction<ServerResponse> externalAdminRoutes(ExternalAdminHandler handler) {
         return route(POST("/api/external/admin/pre-register").and(accept(MediaType.APPLICATION_JSON)), handler::preRegister)
                 .andRoute(GET("/api/external/admin/validate-token"), handler::validateToken)
                 .andRoute(POST("/api/external/admin/activate").and(accept(MediaType.APPLICATION_JSON)), handler::activate)
-                .andRoute(POST("/api/external/admin/complete-onboarding").and(accept(MediaType.APPLICATION_JSON)), handler::completeOnboarding);
+                .andRoute(POST("/api/external/admin/complete-onboarding").and(accept(MediaType.APPLICATION_JSON)), handler::completeOnboarding)
+                .andRoute(POST("/api/external/admin/resend").and(accept(MediaType.APPLICATION_JSON)), handler::resend);
     }
 }

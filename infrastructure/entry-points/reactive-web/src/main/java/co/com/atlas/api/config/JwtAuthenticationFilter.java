@@ -32,6 +32,7 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/api/auth/register",
             "/api/users/register",
             "/api/invitations",
+            "/api/external",
             "/swagger-ui",
             "/v3/api-docs",
             "/webjars",

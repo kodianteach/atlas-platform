@@ -7,10 +7,12 @@ import co.com.atlas.api.external.dto.CompleteOnboardingRequest;
 import co.com.atlas.api.external.dto.CompleteOnboardingResponse;
 import co.com.atlas.api.external.dto.PreRegisterAdminRequest;
 import co.com.atlas.api.external.dto.PreRegisterAdminResponse;
+import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.common.DuplicateException;
 import co.com.atlas.usecase.preregistration.ActivateAdminUseCase;
 import co.com.atlas.usecase.preregistration.CompleteOnboardingUseCase;
 import co.com.atlas.usecase.preregistration.PreRegisterAdminUseCase;
+import co.com.atlas.usecase.preregistration.ResendPreRegistrationUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -41,6 +43,7 @@ public class ExternalAdminHandler {
     private final PreRegisterAdminUseCase preRegisterAdminUseCase;
     private final ActivateAdminUseCase activateAdminUseCase;
     private final CompleteOnboardingUseCase completeOnboardingUseCase;
+    private final ResendPreRegistrationUseCase resendPreRegistrationUseCase;
 
     /**
      * Pre-registra un nuevo administrador.
@@ -356,5 +359,106 @@ public class ExternalAdminHandler {
                             .contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(response);
                 });
+    }
+
+    /**
+     * Reenvía el email de pre-registro a un usuario ya pre-registrado.
+     * 
+     * POST /api/external/admin/resend
+     */
+    public Mono<ServerResponse> resend(ServerRequest request) {
+        String operatorId = request.headers().firstHeader("X-Operator-Id");
+        String operatorIp = request.headers().firstHeader("X-Forwarded-For");
+        if (operatorIp == null) {
+            operatorIp = request.remoteAddress()
+                    .map(addr -> addr.getAddress().getHostAddress())
+                    .orElse("unknown");
+        }
+        String operatorUserAgent = request.headers().firstHeader("User-Agent");
+        
+        final String finalOperatorIp = operatorIp;
+        
+        return request.bodyToMono(ResendRequest.class)
+                .flatMap(req -> {
+                    Long parsedOperatorId = null;
+                    if (operatorId != null) {
+                        try {
+                            parsedOperatorId = Long.parseLong(operatorId);
+                        } catch (NumberFormatException e) {
+                            // Use null if not parseable
+                        }
+                    }
+                    
+                    ResendPreRegistrationUseCase.ResendCommand command =
+                            new ResendPreRegistrationUseCase.ResendCommand(
+                                    req.getEmail(),
+                                    req.getActivationBaseUrl(),
+                                    req.getExpirationHours(),
+                                    parsedOperatorId,
+                                    finalOperatorIp,
+                                    operatorUserAgent
+                            );
+                    
+                    return resendPreRegistrationUseCase.execute(command);
+                })
+                .flatMap(result -> {
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("userId", result.userId());
+                    data.put("tokenId", result.tokenId());
+                    data.put("email", result.email());
+                    data.put("names", result.names());
+                    data.put("expiresAt", result.expiresAt());
+                    data.put("message", result.message());
+                    
+                    ApiResponse<Map<String, Object>> response = ApiResponse.<Map<String, Object>>builder()
+                            .success(true)
+                            .status(HttpStatus.OK.value())
+                            .message("Email reenviado exitosamente")
+                            .data(data)
+                            .build();
+                    
+                    return ServerResponse.ok()
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(response);
+                })
+                .onErrorResume(BusinessException.class, e -> {
+                    Map<String, Object> metadata = new HashMap<>();
+                    metadata.put("errorCode", e.getErrorCode());
+                    
+                    ApiResponse<Void> response = ApiResponse.error(
+                            HttpStatus.BAD_REQUEST.value(),
+                            e.getMessage(),
+                            request.path(),
+                            metadata
+                    );
+                    
+                    return ServerResponse.status(HttpStatus.BAD_REQUEST)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(response);
+                })
+                .onErrorResume(e -> {
+                    log.error("Error resending pre-registration email", e);
+                    
+                    ApiResponse<Void> response = ApiResponse.error(
+                            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                            "Error reenviando email: " + e.getMessage(),
+                            request.path(),
+                            null
+                    );
+                    
+                    return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(response);
+                });
+    }
+
+    /**
+     * DTO para solicitud de reenvío
+     */
+    @lombok.Data
+    public static class ResendRequest {
+        private String email;
+        private String activationBaseUrl;
+        private Integer expirationHours;
     }
 }

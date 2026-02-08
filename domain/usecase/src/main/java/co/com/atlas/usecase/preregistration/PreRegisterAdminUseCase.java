@@ -159,7 +159,7 @@ public class PreRegisterAdminUseCase {
                 .createdBy(command.operatorId())
                 .ipAddress(command.operatorIp())
                 .userAgent(command.operatorUserAgent())
-                .metadata(command.metadata())
+                .metadata(toJsonMetadata(command.metadata()))
                 .build();
         
         String activationUrl = buildActivationUrl(command.baseActivationUrl(), rawToken);
@@ -246,5 +246,31 @@ public class PreRegisterAdminUseCase {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
                 .withZone(ZoneId.of("America/Bogota"));
         return formatter.format(instant);
+    }
+    
+    /**
+     * Convierte el metadata a JSON válido.
+     * Si ya es JSON válido, lo retorna tal como está.
+     * Si es texto plano, lo envuelve en un objeto JSON.
+     */
+    private String toJsonMetadata(String metadata) {
+        if (metadata == null || metadata.isBlank()) {
+            return "{}";
+        }
+        String trimmed = metadata.trim();
+        // Si ya parece ser JSON válido (objeto o array), retornarlo
+        if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || 
+            (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+            return trimmed;
+        }
+        // Envolver texto plano en JSON válido
+        // Escapar caracteres especiales para JSON
+        String escaped = trimmed
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
+        return "{\"message\": \"" + escaped + "\"}";
     }
 }

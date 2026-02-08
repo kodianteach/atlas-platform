@@ -51,6 +51,8 @@ public class SecurityConfig {
                         .pathMatchers("/api/visits/**").authenticated()
                         // Endpoints públicos de invitaciones (validar, aceptar y reenviar)
                         .pathMatchers("/api/invitations/**").permitAll()
+                        // Endpoints externos de pre-registro de administradores
+                        .pathMatchers("/api/external/**").permitAll()
                         // Swagger/OpenAPI
                         .pathMatchers("/swagger-ui.html").permitAll()
                         .pathMatchers("/swagger-ui/**").permitAll()

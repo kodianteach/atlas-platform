@@ -30,6 +30,28 @@ spring:
     validate-on-migrate: true
     out-of-order: false
     clean-disabled: true
+  # Configuración de correo electrónico (bajo spring.mail para auto-config de Spring Boot)
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:kodianteach@gmail.com}
+    password: ${MAIL_PASSWORD:fchn spwr vhjx kmfs}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connection-timeout: 5000
+          timeout: 3000
+          write-timeout: 5000
+    default-encoding: UTF-8
+# Configuración de notificaciones
+notification:
+  enabled: ${NOTIFICATION_ENABLED:true}
+  from-email: ${NOTIFICATION_FROM_EMAIL:noreply@atlas-platform.com}
+  from-name: ${NOTIFICATION_FROM_NAME:Atlas Platform}
 
 # Propiedades personalizadas para el adaptador R2DBC
 adapters:
@@ -70,4 +92,5 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
     display-request-duration: true
+
 
