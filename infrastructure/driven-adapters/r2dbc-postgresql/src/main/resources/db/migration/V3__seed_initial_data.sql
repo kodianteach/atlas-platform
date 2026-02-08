@@ -173,7 +173,7 @@ AND p.code IN (
 -- USUARIO ADMIN DE PRUEBAS
 -- =========================
 INSERT INTO users (names, email, password_hash, is_active) VALUES
-('Admin Atlas', 'admin@atlas.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', TRUE);
+('Admin Atlas', 'admin@atlas.com', '$2a$12$WZsMpUFmB2mxx0eCIn2tBOCkx2x5t05ogiXzZtkhocdyCjhsC/QiG', TRUE);
 
 -- Asignar rol SUPER_ADMIN al usuario admin
 INSERT INTO user_role (user_id, role_id)
