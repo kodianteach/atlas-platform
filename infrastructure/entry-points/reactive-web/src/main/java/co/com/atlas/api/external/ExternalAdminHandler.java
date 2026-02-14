@@ -97,7 +97,7 @@ public class ExternalAdminHandler {
                                     parsedOperatorId,
                                     finalOperatorIp,
                                     operatorUserAgent,
-                                    metadataJson
+                                            metadataJson
                             );
                     
                     return preRegisterAdminUseCase.execute(command);
