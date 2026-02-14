@@ -10,8 +10,11 @@ import co.com.atlas.model.company.gateways.CompanyRepository;
 import co.com.atlas.model.organization.Organization;
 import co.com.atlas.model.organization.OrganizationType;
 import co.com.atlas.model.organization.gateways.OrganizationRepository;
+import co.com.atlas.model.role.gateways.RoleRepository;
 import co.com.atlas.model.userorganization.UserOrganization;
 import co.com.atlas.model.userorganization.gateways.UserOrganizationRepository;
+import co.com.atlas.model.userrolemulti.UserRoleMulti;
+import co.com.atlas.model.userrolemulti.gateways.UserRoleMultiRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
@@ -32,9 +35,12 @@ public class CompleteOnboardingUseCase {
     private final CompanyRepository companyRepository;
     private final OrganizationRepository organizationRepository;
     private final UserOrganizationRepository userOrganizationRepository;
+    private final RoleRepository roleRepository;
+    private final UserRoleMultiRepository userRoleMultiRepository;
     
     private static final Pattern NON_LATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
+    private static final String ADMIN_ATLAS_ROLE_CODE = "ADMIN_ATLAS";
     
     /**
      * Comando para completar onboarding.
@@ -73,8 +79,8 @@ public class CompleteOnboardingUseCase {
      */
     public Mono<OnboardingResult> execute(OnboardingCommand command) {
         return validateUserStatus(command.userId())
-                .then(validateCommand(command))
-                .then(createCompanyAndOrganization(command));
+                .then(Mono.defer(() -> validateCommand(command)))
+                .then(Mono.defer(() -> createCompanyAndOrganization(command)));
     }
     
     private Mono<AuthUser> validateUserStatus(Long userId) {
@@ -113,14 +119,14 @@ public class CompleteOnboardingUseCase {
         }
         if (command.organizationType() == null || command.organizationType().isBlank()) {
             return Mono.error(new BusinessException(
-                    "El tipo de organización es requerido (CIUDADELA o CONJUNTO)", 
+                    "El tipo de organización es requerido (CIUDADELA, CONJUNTO o CONDOMINIO)", 
                     "INVALID_ORGANIZATION_TYPE"));
         }
         
         String orgType = command.organizationType().toUpperCase();
-        if (!orgType.equals("CIUDADELA") && !orgType.equals("CONJUNTO")) {
+        if (!orgType.equals("CIUDADELA") && !orgType.equals("CONJUNTO") && !orgType.equals("CONDOMINIO")) {
             return Mono.error(new BusinessException(
-                    "El tipo de organización debe ser CIUDADELA o CONJUNTO", 
+                    "El tipo de organización debe ser CIUDADELA, CONJUNTO o CONDOMINIO", 
                     "INVALID_ORGANIZATION_TYPE"));
         }
         
@@ -175,14 +181,23 @@ public class CompleteOnboardingUseCase {
                 : generateOrgCode(command.organizationName());
         
         String orgSlug = generateSlug(command.organizationName());
+        OrganizationType orgType = OrganizationType.valueOf(command.organizationType().toUpperCase());
+        
+        // Determinar allowedUnitTypes según tipo de organización
+        String allowedUnitTypes = switch (orgType) {
+            case CIUDADELA -> "HOUSE,APARTMENT"; // Ciudadela permite ambos tipos
+            case CONJUNTO -> "HOUSE,APARTMENT";  // Conjunto permite ambos tipos
+            case CONDOMINIO -> "HOUSE";           // Condominio solo permite casas
+        };
         
         Organization org = Organization.builder()
                 .companyId(company.getId())
                 .code(orgCode)
                 .name(command.organizationName())
                 .slug(orgSlug)
-                .type(OrganizationType.valueOf(command.organizationType().toUpperCase()))
+                .type(orgType)
                 .usesZones(command.usesZones() != null ? command.usesZones() : true)
+                .allowedUnitTypes(allowedUnitTypes)
                 .description(command.organizationDescription())
                 .status("ACTIVE")
                 .isActive(true)
@@ -199,7 +214,44 @@ public class CompleteOnboardingUseCase {
                 .status("ACTIVE")
                 .build();
         
-        return userOrganizationRepository.save(userOrg).then();
+        return userOrganizationRepository.save(userOrg)
+                .then(assignAdminAtlasRole(userId, org.getId()));
+    }
+    
+    /**
+     * Asigna el rol ADMIN_ATLAS al usuario en la organización creada.
+     * Si el usuario ya tiene el rol con organization_id = NULL (asignado durante pre-registro),
+     * actualiza ese registro con el nuevo organization_id.
+     * Si no existe, crea uno nuevo.
+     */
+    private Mono<Void> assignAdminAtlasRole(Long userId, Long organizationId) {
+        return roleRepository.findByCode(ADMIN_ATLAS_ROLE_CODE)
+                .switchIfEmpty(Mono.error(new BusinessException(
+                        "Rol ADMIN_ATLAS no encontrado en el sistema", "ROLE_NOT_FOUND")))
+                .flatMap(role -> 
+                    // Buscar roles existentes sin organización (asignados en pre-registro)
+                    userRoleMultiRepository.findByUserIdAndOrganizationIdIsNull(userId)
+                            .filter(urm -> urm.getRoleId().equals(role.getId()))
+                            .next()
+                            .flatMap(existingRole -> {
+                                // Actualizar el registro existente con el nuevo organization_id
+                                UserRoleMulti updated = existingRole.toBuilder()
+                                        .organizationId(organizationId)
+                                        .build();
+                                return userRoleMultiRepository.save(updated);
+                            })
+                            .switchIfEmpty(Mono.defer(() -> {
+                                // No existe, crear nuevo
+                                UserRoleMulti userRole = UserRoleMulti.builder()
+                                        .userId(userId)
+                                        .organizationId(organizationId)
+                                        .roleId(role.getId())
+                                        .isPrimary(true)
+                                        .build();
+                                return userRoleMultiRepository.save(userRole);
+                            }))
+                )
+                .then();
     }
     
     private Mono<Void> updateUserToActive(Long userId) {

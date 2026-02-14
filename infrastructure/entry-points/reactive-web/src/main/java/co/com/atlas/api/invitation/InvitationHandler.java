@@ -8,7 +8,9 @@ import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.common.NotFoundException;
 import co.com.atlas.model.invitation.Invitation;
 import co.com.atlas.model.invitation.InvitationType;
+import co.com.atlas.model.auth.DocumentType;
 import co.com.atlas.usecase.invitation.InvitationUseCase;
+import co.com.atlas.usecase.invitation.OwnerRegistrationData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * Handler para operaciones de Invitation.
@@ -35,8 +40,7 @@ public class InvitationHandler {
                             .organizationId(req.getOrganizationId())
                             .unitId(req.getUnitId())
                             .email(req.getEmail())
-                            .phoneNumber(req.getPhoneNumber())
-                            .type(req.getType() != null ? InvitationType.valueOf(req.getType()) : null)
+                            .type(parseInvitationType(req.getType()))
                             .roleId(req.getRoleId())
                             .build();
                     Long invitedBy = extractUserIdFromRequest(request);
@@ -84,10 +88,51 @@ public class InvitationHandler {
 
     public Mono<ServerResponse> accept(ServerRequest request) {
         return request.bodyToMono(AcceptInvitationRequest.class)
-                .flatMap(req -> invitationUseCase.accept(req.getToken(), req.getUserId()))
+                .flatMap(req -> {
+                    // Validaciones básicas
+                    if (req.getToken() == null || req.getToken().isBlank()) {
+                        return Mono.error(new BusinessException("Token requerido"));
+                    }
+                    if (req.getNames() == null || req.getNames().isBlank()) {
+                        return Mono.error(new BusinessException("Nombres requeridos"));
+                    }
+                    if (req.getDocumentType() == null || req.getDocumentType().isBlank()) {
+                        return Mono.error(new BusinessException("Tipo de documento requerido"));
+                    }
+                    if (req.getDocumentNumber() == null || req.getDocumentNumber().isBlank()) {
+                        return Mono.error(new BusinessException("Número de documento requerido"));
+                    }
+                    if (req.getPassword() == null || req.getPassword().isBlank()) {
+                        return Mono.error(new BusinessException("Contraseña requerida"));
+                    }
+                    if (!req.getPassword().equals(req.getConfirmPassword())) {
+                        return Mono.error(new BusinessException("Las contraseñas no coinciden"));
+                    }
+                    
+                    DocumentType docType = parseDocumentType(req.getDocumentType());
+                    
+                    OwnerRegistrationData ownerData = OwnerRegistrationData.builder()
+                            .names(req.getNames())
+                            .phone(req.getPhone())
+                            .documentType(docType)
+                            .documentNumber(req.getDocumentNumber())
+                            .password(req.getPassword())
+                            .build();
+                    
+                    return invitationUseCase.acceptWithOwnerData(req.getToken(), ownerData);
+                })
                 .flatMap(this::buildSuccessResponse)
                 .onErrorResume(BusinessException.class, e -> buildErrorResponse(e, HttpStatus.BAD_REQUEST, request.path()))
                 .onErrorResume(NotFoundException.class, e -> buildErrorResponse(e, HttpStatus.NOT_FOUND, request.path()));
+    }
+    
+    private DocumentType parseDocumentType(String type) {
+        if (type == null || type.isBlank()) return null;
+        try {
+            return DocumentType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public Mono<ServerResponse> cancel(ServerRequest request) {
@@ -139,13 +184,33 @@ public class InvitationHandler {
                 : null;
     }
 
+    /**
+     * Parsea el tipo de invitación con validación y mensaje amigable.
+     */
+    private InvitationType parseInvitationType(String type) {
+        if (type == null || type.isBlank()) {
+            return null;
+        }
+        try {
+            return InvitationType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            String validValues = Arrays.stream(InvitationType.values())
+                    .map(Enum::name)
+                    .collect(Collectors.joining(", "));
+            throw new BusinessException(
+                    "Tipo de invitación inválido: '" + type + "'. Valores válidos: " + validValues,
+                    "INVALID_INVITATION_TYPE",
+                    400
+            );
+        }
+    }
+
     private InvitationResponse toResponse(Invitation invitation) {
         return InvitationResponse.builder()
                 .id(invitation.getId())
                 .organizationId(invitation.getOrganizationId())
                 .unitId(invitation.getUnitId())
                 .email(invitation.getEmail())
-                .phoneNumber(invitation.getPhoneNumber())
                 .invitationToken(invitation.getInvitationToken())
                 .type(invitation.getType() != null ? invitation.getType().name() : null)
                 .roleId(invitation.getRoleId())

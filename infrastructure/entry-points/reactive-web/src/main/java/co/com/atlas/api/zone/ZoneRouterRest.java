@@ -5,6 +5,7 @@ import co.com.atlas.api.zone.dto.ZoneRequest;
 import co.com.atlas.api.zone.dto.ZoneResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -61,7 +62,7 @@ public class ZoneRouterRest {
                             operationId = "getZoneById",
                             summary = "Obtener zona por ID",
                             tags = {"Zones"},
-                            parameters = @Parameter(name = "id", description = "ID de la zona", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la zona", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Zona encontrada"),
                                     @ApiResponse(responseCode = "404", description = "Zona no encontrada")
@@ -77,7 +78,7 @@ public class ZoneRouterRest {
                             operationId = "getZonesByOrganization",
                             summary = "Listar zonas por organización",
                             tags = {"Zones"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de zonas")
                             }
@@ -92,7 +93,7 @@ public class ZoneRouterRest {
                             operationId = "updateZone",
                             summary = "Actualizar zona",
                             tags = {"Zones"},
-                            parameters = @Parameter(name = "id", description = "ID de la zona", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la zona", required = true),
                             requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = ZoneRequest.class))),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Zona actualizada"),
@@ -109,7 +110,7 @@ public class ZoneRouterRest {
                             operationId = "deleteZone",
                             summary = "Eliminar zona",
                             tags = {"Zones"},
-                            parameters = @Parameter(name = "id", description = "ID de la zona", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la zona", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Zona eliminada")
                             }

@@ -73,7 +73,7 @@ public class OpenApiConfig {
                                 ## Multi-Tenancy
                                 
                                 Atlas es una plataforma multi-tenant donde:
-                                - Cada organización (ciudadela/conjunto) es un tenant aislado
+                                - Cada organización (ciudadela/conjunto/condominio) es un tenant aislado
                                 - Los usuarios pueden pertenecer a múltiples organizaciones
                                 - El token JWT incluye el `organizationId` del tenant activo
                                 """)

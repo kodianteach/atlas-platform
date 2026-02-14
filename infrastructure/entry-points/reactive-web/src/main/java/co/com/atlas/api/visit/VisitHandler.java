@@ -18,6 +18,9 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 /**
  * Handler para operaciones de VisitRequest.
  */
@@ -41,7 +44,7 @@ public class VisitHandler {
                             .reason(req.getReason())
                             .validFrom(req.getValidFrom())
                             .validUntil(req.getValidUntil())
-                            .recurrenceType(req.getRecurrenceType() != null ? RecurrenceType.valueOf(req.getRecurrenceType()) : RecurrenceType.ONCE)
+                            .recurrenceType(parseRecurrenceType(req.getRecurrenceType()))
                             .maxEntries(req.getMaxEntries())
                             .build();
                     Long requestedBy = extractUserIdFromRequest(request);
@@ -156,6 +159,27 @@ public class VisitHandler {
         return ServerResponse.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(response);
+    }
+
+    /**
+     * Parsea el tipo de recurrencia con validación y mensaje amigable.
+     */
+    private RecurrenceType parseRecurrenceType(String recurrenceType) {
+        if (recurrenceType == null || recurrenceType.isBlank()) {
+            return RecurrenceType.ONCE;
+        }
+        try {
+            return RecurrenceType.valueOf(recurrenceType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            String validValues = Arrays.stream(RecurrenceType.values())
+                    .map(Enum::name)
+                    .collect(Collectors.joining(", "));
+            throw new BusinessException(
+                    "Tipo de recurrencia inválido: '" + recurrenceType + "'. Valores válidos: " + validValues,
+                    "INVALID_RECURRENCE_TYPE",
+                    400
+            );
+        }
     }
 
     private VisitRequestResponse toResponse(VisitRequest visit) {

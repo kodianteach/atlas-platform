@@ -5,6 +5,7 @@ import co.com.atlas.api.comment.dto.CommentResponse;
 import co.com.atlas.api.common.dto.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -58,7 +59,7 @@ public class CommentRouterRest {
                             operationId = "getCommentById",
                             summary = "Obtener comentario por ID",
                             tags = {"Comments"},
-                            parameters = @Parameter(name = "id", description = "ID del comentario", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID del comentario", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Comentario encontrado"),
                                     @ApiResponse(responseCode = "404", description = "Comentario no encontrado")
@@ -74,7 +75,7 @@ public class CommentRouterRest {
                             operationId = "deleteComment",
                             summary = "Eliminar comentario",
                             tags = {"Comments"},
-                            parameters = @Parameter(name = "id", description = "ID del comentario", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID del comentario", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Comentario eliminado")
                             }
@@ -89,7 +90,7 @@ public class CommentRouterRest {
                             operationId = "getCommentsByPost",
                             summary = "Listar comentarios de un post",
                             tags = {"Comments"},
-                            parameters = @Parameter(name = "postId", description = "ID del post", required = true),
+                            parameters = @Parameter(name = "postId", in = ParameterIn.PATH, description = "ID del post", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de comentarios")
                             }
@@ -104,7 +105,7 @@ public class CommentRouterRest {
                             operationId = "countCommentsByPost",
                             summary = "Contar comentarios de un post",
                             tags = {"Comments"},
-                            parameters = @Parameter(name = "postId", description = "ID del post", required = true),
+                            parameters = @Parameter(name = "postId", in = ParameterIn.PATH, description = "ID del post", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Conteo de comentarios")
                             }
@@ -119,7 +120,7 @@ public class CommentRouterRest {
                             operationId = "getCommentReplies",
                             summary = "Obtener respuestas a un comentario",
                             tags = {"Comments"},
-                            parameters = @Parameter(name = "parentId", description = "ID del comentario padre", required = true),
+                            parameters = @Parameter(name = "parentId", in = ParameterIn.PATH, description = "ID del comentario padre", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de respuestas")
                             }

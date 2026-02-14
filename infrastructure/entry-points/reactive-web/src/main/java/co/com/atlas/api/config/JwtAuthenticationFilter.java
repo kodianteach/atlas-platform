@@ -63,6 +63,10 @@ public class JwtAuthenticationFilter implements WebFilter {
         String token = authHeader.substring(BEARER_PREFIX.length());
 
         return jwtTokenGateway.validateToken(token)
+                .onErrorResume(e -> {
+                    log.error("JWT Filter - Error validating token: {}", e.getMessage());
+                    return Mono.just(false);
+                })
                 .flatMap(isValid -> {
                     if (Boolean.TRUE.equals(isValid)) {
                         log.debug("JWT Filter - Token valid for path: {}", path);
@@ -71,10 +75,6 @@ public class JwtAuthenticationFilter implements WebFilter {
                                         .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth)));
                     }
                     log.warn("JWT Filter - Token invalid for path: {}", path);
-                    return unauthorized(exchange);
-                })
-                .onErrorResume(e -> {
-                    log.error("JWT Filter - Error processing token for path: {} - Error: {}", path, e.getMessage());
                     return unauthorized(exchange);
                 });
     }

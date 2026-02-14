@@ -5,6 +5,7 @@ import co.com.atlas.api.company.dto.CompanyResponse;
 import co.com.atlas.api.common.dto.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -62,7 +63,7 @@ public class CompanyRouterRest {
                             operationId = "getCompanyById",
                             summary = "Obtener compañía por ID",
                             tags = {"Companies"},
-                            parameters = @Parameter(name = "id", description = "ID de la compañía", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la compañía", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Compañía encontrada",
                                             content = @Content(schema = @Schema(implementation = CompanyResponse.class))),
@@ -80,7 +81,7 @@ public class CompanyRouterRest {
                             operationId = "getCompanyBySlug",
                             summary = "Obtener compañía por slug",
                             tags = {"Companies"},
-                            parameters = @Parameter(name = "slug", description = "Slug de la compañía", required = true),
+                            parameters = @Parameter(name = "slug", in = ParameterIn.PATH, description = "Slug de la compañía", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Compañía encontrada",
                                             content = @Content(schema = @Schema(implementation = CompanyResponse.class))),
@@ -112,7 +113,7 @@ public class CompanyRouterRest {
                             operationId = "updateCompany",
                             summary = "Actualizar compañía",
                             tags = {"Companies"},
-                            parameters = @Parameter(name = "id", description = "ID de la compañía", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la compañía", required = true),
                             requestBody = @RequestBody(
                                     required = true,
                                     content = @Content(schema = @Schema(implementation = CompanyRequest.class))
@@ -134,7 +135,7 @@ public class CompanyRouterRest {
                             operationId = "deleteCompany",
                             summary = "Eliminar compañía",
                             tags = {"Companies"},
-                            parameters = @Parameter(name = "id", description = "ID de la compañía", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la compañía", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Compañía eliminada"),
                                     @ApiResponse(responseCode = "404", description = "Compañía no encontrada",

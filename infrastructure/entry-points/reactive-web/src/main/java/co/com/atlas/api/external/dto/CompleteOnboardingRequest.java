@@ -54,7 +54,7 @@ public class CompleteOnboardingRequest {
     // ========== Datos de Organization ==========
     
     /**
-     * Nombre de la organización (ciudadela o conjunto).
+     * Nombre de la organización (ciudadela, conjunto o condominio).
      */
     private String organizationName;
     
@@ -64,7 +64,12 @@ public class CompleteOnboardingRequest {
     private String organizationCode;
     
     /**
-     * Tipo de organización: CIUDADELA o CONJUNTO.
+     * Tipo de organización: CIUDADELA, CONJUNTO o CONDOMINIO.
+     * <ul>
+     *   <li>CIUDADELA: Zonas → Torres → Apartamentos/Casas</li>
+     *   <li>CONJUNTO: Zonas (opcional) → Apartamentos/Casas</li>
+     *   <li>CONDOMINIO: Zonas → Casas (únicamente)</li>
+     * </ul>
      */
     private String organizationType;
     

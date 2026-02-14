@@ -75,17 +75,29 @@ public class ExternalAdminHandler {
                         }
                     }
                     
+                    // Convert metadata Map to JSON string
+                    String metadataJson = null;
+                    if (req.getMetadata() != null && !req.getMetadata().isEmpty()) {
+                        try {
+                            metadataJson = new tools.jackson.databind.ObjectMapper().writeValueAsString(req.getMetadata());
+                        } catch (tools.jackson.core.JacksonException e) {
+                            log.warn("Error serializing metadata to JSON", e);
+                        }
+                    }
+                    
                     PreRegisterAdminUseCase.PreRegisterCommand command = 
                             new PreRegisterAdminUseCase.PreRegisterCommand(
                                     req.getEmail(),
                                     req.getNames(),
+                                    req.getDocumentType(),
+                                    req.getDocumentNumber(),
                                     req.getPhone(),
                                     req.getExpirationHours() != null ? req.getExpirationHours() : 72,
                                     req.getActivationBaseUrl(),
                                     parsedOperatorId,
                                     finalOperatorIp,
                                     operatorUserAgent,
-                                    req.getMetadata()
+                                    metadataJson
                             );
                     
                     return preRegisterAdminUseCase.execute(command);
@@ -96,6 +108,8 @@ public class ExternalAdminHandler {
                             .tokenId(result.tokenId())
                             .email(result.email())
                             .names(result.names())
+                            .documentType(result.documentType())
+                            .documentNumberMasked(result.documentNumberMasked())
                             .expiresAt(result.expiresAt())
                             .message(result.message())
                             .build();
@@ -307,58 +321,30 @@ public class ExternalAdminHandler {
                                     req.getOrganizationDescription()
                             );
                     
-                    return completeOnboardingUseCase.execute(command);
+                    return completeOnboardingUseCase.execute(command)
+                            .flatMap(result -> {
+                                CompleteOnboardingResponse data = CompleteOnboardingResponse.builder()
+                                        .companyId(result.companyId())
+                                        .companySlug(result.companySlug())
+                                        .organizationId(result.organizationId())
+                                        .organizationCode(result.organizationCode())
+                                        .message(result.message())
+                                        .build();
+                                
+                                ApiResponse<CompleteOnboardingResponse> response = ApiResponse.<CompleteOnboardingResponse>builder()
+                                        .success(true)
+                                        .status(HttpStatus.CREATED.value())
+                                        .message("Onboarding completado exitosamente")
+                                        .data(data)
+                                        .build();
+                                
+                                return ServerResponse.status(HttpStatus.CREATED)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .bodyValue(response);
+                            })
+                            .onErrorResume(e -> handleError(e, request));
                 })
-                .flatMap(result -> {
-                    CompleteOnboardingResponse data = CompleteOnboardingResponse.builder()
-                            .companyId(result.companyId())
-                            .companySlug(result.companySlug())
-                            .organizationId(result.organizationId())
-                            .organizationCode(result.organizationCode())
-                            .message(result.message())
-                            .build();
-                    
-                    ApiResponse<CompleteOnboardingResponse> response = ApiResponse.<CompleteOnboardingResponse>builder()
-                            .success(true)
-                            .status(HttpStatus.CREATED.value())
-                            .message("Onboarding completado exitosamente")
-                            .data(data)
-                            .build();
-                    
-                    return ServerResponse.status(HttpStatus.CREATED)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(response);
-                })
-                .onErrorResume(IllegalStateException.class, e -> {
-                    Map<String, Object> metadata = new HashMap<>();
-                    metadata.put("errorCode", "ONBOARDING_001");
-                    
-                    ApiResponse<Void> response = ApiResponse.error(
-                            HttpStatus.FORBIDDEN.value(),
-                            e.getMessage(),
-                            request.path(),
-                            metadata
-                    );
-                    
-                    return ServerResponse.status(HttpStatus.FORBIDDEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(response);
-                })
-                .onErrorResume(IllegalArgumentException.class, e -> {
-                    Map<String, Object> metadata = new HashMap<>();
-                    metadata.put("errorCode", "ONBOARDING_002");
-                    
-                    ApiResponse<Void> response = ApiResponse.error(
-                            HttpStatus.BAD_REQUEST.value(),
-                            e.getMessage(),
-                            request.path(),
-                            metadata
-                    );
-                    
-                    return ServerResponse.status(HttpStatus.BAD_REQUEST)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(response);
-                });
+                .onErrorResume(e -> handleError(e, request));
     }
 
     /**
@@ -450,6 +436,69 @@ public class ExternalAdminHandler {
                             .contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(response);
                 });
+    }
+
+    /**
+     * Método centralizado para manejar todos los errores.
+     */
+    private Mono<ServerResponse> handleError(Throwable e, ServerRequest request) {
+        log.error("Error en endpoint [{}]: {} - {}", request.path(), e.getClass().getSimpleName(), e.getMessage(), e);
+        
+        HttpStatus status;
+        String errorCode;
+        String message = e.getMessage();
+        
+        // Obtener causa raíz
+        Throwable rootCause = e;
+        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+            rootCause = rootCause.getCause();
+        }
+        
+        // Si la causa raíz es BusinessException, usar esa
+        if (rootCause instanceof BusinessException be) {
+            status = HttpStatus.resolve(be.getHttpStatus());
+            if (status == null) status = HttpStatus.BAD_REQUEST;
+            errorCode = be.getErrorCode();
+            message = be.getMessage();
+        } else if (e instanceof BusinessException be) {
+            status = HttpStatus.resolve(be.getHttpStatus());
+            if (status == null) status = HttpStatus.BAD_REQUEST;
+            errorCode = be.getErrorCode();
+            message = be.getMessage();
+        } else if (e instanceof IllegalArgumentException) {
+            status = HttpStatus.BAD_REQUEST;
+            errorCode = "INVALID_ARGUMENT";
+        } else if (e instanceof IllegalStateException) {
+            status = HttpStatus.CONFLICT;
+            errorCode = "INVALID_STATE";
+        } else {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+            errorCode = "INTERNAL_ERROR";
+            if (message == null || message.isBlank()) {
+                message = rootCause.getMessage();
+            }
+            if (message == null || message.isBlank()) {
+                message = e.getClass().getSimpleName();
+            }
+        }
+        
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("errorCode", errorCode);
+        metadata.put("errorType", e.getClass().getSimpleName());
+        if (rootCause != e) {
+            metadata.put("rootCause", rootCause.getClass().getSimpleName());
+        }
+        
+        ApiResponse<Void> response = ApiResponse.error(
+                status.value(),
+                message,
+                request.path(),
+                metadata
+        );
+        
+        return ServerResponse.status(status)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(response);
     }
 
     /**

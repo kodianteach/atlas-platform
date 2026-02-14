@@ -5,6 +5,7 @@ import co.com.atlas.api.access.dto.ValidateCodeResponse;
 import co.com.atlas.api.common.dto.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -62,7 +63,7 @@ public class AccessRouterRest {
                             operationId = "getAccessCodesByVisit",
                             summary = "Obtener códigos por solicitud de visita",
                             tags = {"Access"},
-                            parameters = @Parameter(name = "visitRequestId", description = "ID de la solicitud de visita", required = true),
+                            parameters = @Parameter(name = "visitRequestId", in = ParameterIn.PATH, description = "ID de la solicitud de visita", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de códigos de acceso")
                             }
@@ -77,7 +78,7 @@ public class AccessRouterRest {
                             operationId = "getAccessScanLogs",
                             summary = "Obtener historial de escaneos",
                             tags = {"Access"},
-                            parameters = @Parameter(name = "accessCodeId", description = "ID del código de acceso", required = true),
+                            parameters = @Parameter(name = "accessCodeId", in = ParameterIn.PATH, description = "ID del código de acceso", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de escaneos")
                             }
@@ -92,7 +93,7 @@ public class AccessRouterRest {
                             operationId = "revokeAccessCode",
                             summary = "Revocar código de acceso",
                             tags = {"Access"},
-                            parameters = @Parameter(name = "id", description = "ID del código de acceso", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID del código de acceso", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Código revocado")
                             }

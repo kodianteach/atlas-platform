@@ -16,4 +16,19 @@ public interface AuthUserReactiveRepository extends ReactiveCrudRepository<AuthU
     
     @Query("UPDATE users SET last_organization_id = :organizationId WHERE id = :userId")
     Mono<Void> updateLastOrganizationId(Long userId, Long organizationId);
+    
+    /**
+     * Verifica si existe un usuario con el tipo y número de documento.
+     */
+    Mono<Boolean> existsByDocumentTypeAndDocumentNumberAndDeletedAtIsNull(String documentType, String documentNumber);
+    
+    /**
+     * Busca un usuario por tipo y número de documento.
+     */
+    Mono<AuthUserEntity> findByDocumentTypeAndDocumentNumberAndDeletedAtIsNull(String documentType, String documentNumber);
+    
+    /**
+     * Verifica si existe un usuario con el email.
+     */
+    Mono<Boolean> existsByEmailAndDeletedAtIsNull(String email);
 }

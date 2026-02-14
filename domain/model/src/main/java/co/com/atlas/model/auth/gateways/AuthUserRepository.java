@@ -62,4 +62,30 @@ public interface AuthUserRepository {
      * @return Mono<Void> completado cuando se actualiza
      */
     Mono<Void> updateLastOrganization(Long userId, Long organizationId);
+    
+    /**
+     * Verifica si existe un usuario con el tipo y número de documento especificados.
+     * 
+     * @param documentType código del tipo de documento (CC, NIT, etc.)
+     * @param documentNumber número de documento
+     * @return Mono<Boolean> true si existe
+     */
+    Mono<Boolean> existsByDocumentTypeAndNumber(String documentType, String documentNumber);
+    
+    /**
+     * Busca un usuario por tipo y número de documento.
+     * 
+     * @param documentType código del tipo de documento
+     * @param documentNumber número de documento
+     * @return Mono<AuthUser> el usuario si existe
+     */
+    Mono<AuthUser> findByDocumentTypeAndNumber(String documentType, String documentNumber);
+    
+    /**
+     * Verifica si existe un usuario con el email especificado.
+     * 
+     * @param email email a verificar
+     * @return Mono<Boolean> true si existe
+     */
+    Mono<Boolean> existsByEmail(String email);
 }

@@ -5,6 +5,7 @@ import co.com.atlas.api.organization.dto.OrganizationRequest;
 import co.com.atlas.api.organization.dto.OrganizationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -26,7 +27,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
  * Router para endpoints de Organization.
  */
 @Configuration
-@Tag(name = "Organizations", description = "Gestión de organizaciones (Ciudadelas/Conjuntos)")
+@Tag(name = "Organizations", description = "Gestión de organizaciones (Ciudadelas/Conjuntos/Condominios)")
 public class OrganizationRouterRest {
 
     @Bean
@@ -61,7 +62,7 @@ public class OrganizationRouterRest {
                             operationId = "getOrganizationById",
                             summary = "Obtener organización por ID",
                             tags = {"Organizations"},
-                            parameters = @Parameter(name = "id", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Organización encontrada",
                                             content = @Content(schema = @Schema(implementation = OrganizationResponse.class)))
@@ -77,7 +78,7 @@ public class OrganizationRouterRest {
                             operationId = "getOrganizationsByCompany",
                             summary = "Obtener organizaciones por compañía",
                             tags = {"Organizations"},
-                            parameters = @Parameter(name = "companyId", required = true)
+                            parameters = @Parameter(name = "companyId", in = ParameterIn.PATH, required = true)
                     )
             ),
             @RouterOperation(
@@ -100,7 +101,7 @@ public class OrganizationRouterRest {
                             operationId = "updateOrganization",
                             summary = "Actualizar organización",
                             tags = {"Organizations"},
-                            parameters = @Parameter(name = "id", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, required = true),
                             requestBody = @RequestBody(
                                     required = true,
                                     content = @Content(schema = @Schema(implementation = OrganizationRequest.class))
@@ -116,7 +117,7 @@ public class OrganizationRouterRest {
                             operationId = "deleteOrganization",
                             summary = "Eliminar organización",
                             tags = {"Organizations"},
-                            parameters = @Parameter(name = "id", required = true)
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, required = true)
                     )
             )
     })

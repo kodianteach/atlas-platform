@@ -47,6 +47,9 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         // Endpoints públicos de usuarios
                         .pathMatchers(HttpMethod.POST, "/api/users/register").permitAll()
+                        // Endpoints de vehículos (requieren autenticación)
+                        .pathMatchers("/api/vehicles/**").authenticated()
+                        .pathMatchers("/api/units/**").authenticated()
                         // Endpoints de visitas (requieren autenticación)
                         .pathMatchers("/api/visits/**").authenticated()
                         // Endpoints públicos de invitaciones (validar, aceptar y reenviar)

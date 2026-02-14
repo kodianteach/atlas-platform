@@ -27,6 +27,14 @@ public class Unit {
     private Integer bedrooms;
     private Integer bathrooms;
     private Integer parkingSpots;
+    private Integer maxVehicles;
+    
+    /**
+     * Indica si la unidad tiene habilitada la gestión de vehículos.
+     * Si es false, vehicleLimit debe ser 0 o null.
+     */
+    private Boolean vehiclesEnabled;
+    
     private UnitStatus status;
     private Boolean isActive;
     private Instant createdAt;

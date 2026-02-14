@@ -58,4 +58,14 @@ public interface UserUnitRepository {
      * Cuenta las vinculaciones activas de una unidad.
      */
     Mono<Long> countActiveByUnit(Long unitId);
+    
+    /**
+     * Actualiza el estado de una vinculación usuario-unidad.
+     * 
+     * @param userId ID del usuario
+     * @param unitId ID de la unidad
+     * @param status nuevo estado (ACTIVE, PENDING, etc.)
+     * @return Mono vacío cuando se completa
+     */
+    Mono<Void> updateStatusByUserIdAndUnitId(Long userId, Long unitId, String status);
 }

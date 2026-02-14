@@ -3,6 +3,7 @@ package co.com.atlas.r2dbc.authuser;
 import co.com.atlas.model.auth.AuthUser;
 import co.com.atlas.model.auth.UserStatus;
 import co.com.atlas.model.auth.gateways.AuthUserRepository;
+import co.com.atlas.model.auth.DocumentType;
 import co.com.atlas.model.permission.Permission;
 import co.com.atlas.model.role.Role;
 import lombok.RequiredArgsConstructor;
@@ -145,6 +146,15 @@ public class AuthUserRepositoryAdapter implements AuthUserRepository {
             }
         }
         
+        DocumentType documentType = null;
+        if (entity.getDocumentType() != null) {
+            try {
+                documentType = DocumentType.valueOf(entity.getDocumentType());
+            } catch (IllegalArgumentException e) {
+                log.warn("Tipo de documento no reconocido: {}", entity.getDocumentType());
+            }
+        }
+        
         return AuthUser.builder()
                 .id(entity.getId())
                 .email(entity.getEmail())
@@ -156,6 +166,8 @@ public class AuthUserRepositoryAdapter implements AuthUserRepository {
                 .organizationId(organizationId)
                 .roles(roles)
                 .permissions(permissions)
+                .documentType(documentType)
+                .documentNumber(entity.getDocumentNumber())
                 .build();
     }
 
@@ -169,6 +181,36 @@ public class AuthUserRepositoryAdapter implements AuthUserRepository {
                 .active(user.isActive())
                 .status(user.getStatus() != null ? user.getStatus().name() : "ACTIVE")
                 .lastOrganizationId(user.getOrganizationId())
+                .documentType(user.getDocumentType() != null ? user.getDocumentType().name() : null)
+                .documentNumber(user.getDocumentNumber())
                 .build();
+    }
+    
+    @Override
+    public Mono<Boolean> existsByDocumentTypeAndNumber(String documentType, String documentNumber) {
+        if (documentType == null || documentNumber == null) {
+            return Mono.just(false);
+        }
+        return repository.existsByDocumentTypeAndDocumentNumberAndDeletedAtIsNull(
+            documentType, documentNumber
+        );
+    }
+    
+    @Override
+    public Mono<AuthUser> findByDocumentTypeAndNumber(String documentType, String documentNumber) {
+        if (documentType == null || documentNumber == null) {
+            return Mono.empty();
+        }
+        return repository.findByDocumentTypeAndDocumentNumberAndDeletedAtIsNull(
+            documentType, documentNumber
+        ).flatMap(this::enrichWithRolesAndPermissions);
+    }
+    
+    @Override
+    public Mono<Boolean> existsByEmail(String email) {
+        if (email == null) {
+            return Mono.just(false);
+        }
+        return repository.existsByEmailAndDeletedAtIsNull(email);
     }
 }

@@ -27,6 +27,7 @@ public class UnitResponse {
     private Integer bedrooms;
     private Integer bathrooms;
     private Integer parkingSpots;
+    private Integer maxVehicles;
     private String status;
     private Boolean isActive;
     private Instant createdAt;

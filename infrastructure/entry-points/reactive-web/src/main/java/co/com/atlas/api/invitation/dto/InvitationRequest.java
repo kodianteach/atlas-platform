@@ -16,7 +16,6 @@ public class InvitationRequest {
     private Long organizationId;
     private Long unitId;
     private String email;
-    private String phoneNumber;
     private String type;
     private Long roleId;
 }

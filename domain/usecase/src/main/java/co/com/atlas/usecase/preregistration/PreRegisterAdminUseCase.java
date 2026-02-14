@@ -1,6 +1,7 @@
 package co.com.atlas.usecase.preregistration;
 
 import co.com.atlas.model.auth.AuthUser;
+import co.com.atlas.model.auth.DocumentType;
 import co.com.atlas.model.auth.UserStatus;
 import co.com.atlas.model.auth.gateways.AuthUserRepository;
 import co.com.atlas.model.common.BusinessException;
@@ -12,6 +13,9 @@ import co.com.atlas.model.preregistration.PreRegistrationAuditAction;
 import co.com.atlas.model.preregistration.PreRegistrationAuditLog;
 import co.com.atlas.model.preregistration.gateways.AdminActivationTokenRepository;
 import co.com.atlas.model.preregistration.gateways.PreRegistrationAuditRepository;
+import co.com.atlas.model.role.gateways.RoleRepository;
+import co.com.atlas.model.userrolemulti.UserRoleMulti;
+import co.com.atlas.model.userrolemulti.gateways.UserRoleMultiRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
@@ -38,6 +42,11 @@ public class PreRegisterAdminUseCase {
     private final AdminActivationTokenRepository tokenRepository;
     private final PreRegistrationAuditRepository auditRepository;
     private final NotificationGateway notificationGateway;
+    private final RoleRepository roleRepository;
+    private final UserRoleMultiRepository userRoleMultiRepository;
+    
+    // Código del rol de administrador
+    private static final String ADMIN_ATLAS_ROLE_CODE = "ADMIN_ATLAS";
     
     // Configuración de expiración (puede ser inyectada desde configuración)
     private static final int DEFAULT_EXPIRATION_HOURS = 24;
@@ -53,6 +62,8 @@ public class PreRegisterAdminUseCase {
     public record PreRegisterCommand(
             String email,
             String names,
+            String documentType,
+            String documentNumber,
             String phone,
             Integer expirationHours,
             String baseActivationUrl,
@@ -70,6 +81,8 @@ public class PreRegisterAdminUseCase {
             Long tokenId,
             String email,
             String names,
+            String documentType,
+            String documentNumberMasked,
             Instant expiresAt,
             String message
     ) {}
@@ -84,7 +97,28 @@ public class PreRegisterAdminUseCase {
         return validateCommand(command)
                 .then(checkEmailUnique(command.email()))
                 .then(createPreRegisteredUser(command))
-                .flatMap(user -> createActivationTokenAndNotify(user, command));
+                .flatMap(user -> assignAdminRole(user)
+                        .then(createActivationTokenAndNotify(user, command)));
+    }
+    
+    /**
+     * Asigna el rol ADMIN_ATLAS al usuario sin organización (organization_id = null).
+     * El organization_id se asignará cuando complete el onboarding.
+     */
+    private Mono<Void> assignAdminRole(AuthUser user) {
+        return roleRepository.findByCode(ADMIN_ATLAS_ROLE_CODE)
+                .switchIfEmpty(Mono.error(new BusinessException(
+                        "Rol ADMIN_ATLAS no encontrado en el sistema", "ROLE_NOT_FOUND")))
+                .flatMap(role -> {
+                    UserRoleMulti userRole = UserRoleMulti.builder()
+                            .userId(user.getId())
+                            .organizationId(null) // Sin organización hasta completar onboarding
+                            .roleId(role.getId())
+                            .isPrimary(true)
+                            .build();
+                    return userRoleMultiRepository.save(userRole);
+                })
+                .then();
     }
     
     private Mono<Void> validateCommand(PreRegisterCommand command) {
@@ -93,6 +127,20 @@ public class PreRegisterAdminUseCase {
         }
         if (command.names() == null || command.names().isBlank()) {
             return Mono.error(new BusinessException("El nombre es requerido", "INVALID_NAME"));
+        }
+        if (command.documentType() == null || command.documentType().isBlank()) {
+            return Mono.error(new BusinessException("El tipo de documento es requerido", "INVALID_DOCUMENT_TYPE"));
+        }
+        if (command.documentNumber() == null || command.documentNumber().isBlank()) {
+            return Mono.error(new BusinessException("El número de documento es requerido", "INVALID_DOCUMENT_NUMBER"));
+        }
+        // Validar que el tipo de documento sea válido
+        try {
+            DocumentType.valueOf(command.documentType());
+        } catch (IllegalArgumentException e) {
+            return Mono.error(new BusinessException(
+                    "Tipo de documento inválido. Valores permitidos: CC, CE, NIT, PA, TI, PEP", 
+                    "INVALID_DOCUMENT_TYPE"));
         }
         if (command.baseActivationUrl() == null || command.baseActivationUrl().isBlank()) {
             return Mono.error(new BusinessException("La URL de activación es requerida", "INVALID_URL"));
@@ -127,9 +175,13 @@ public class PreRegisterAdminUseCase {
         // Generar contraseña temporal (se enviará por email, se guarda el hash)
         String tempPassword = generateSecurePassword();
         
+        DocumentType docType = DocumentType.valueOf(command.documentType());
+        
         AuthUser newUser = AuthUser.builder()
                 .names(command.names())
                 .email(command.email())
+                .documentType(docType)
+                .documentNumber(command.documentNumber())
                 .passwordHash(tempPassword) // El repository debe hacer el hash
                 .phone(command.phone())
                 .active(false) // No activo hasta completar activación
@@ -205,6 +257,8 @@ public class PreRegisterAdminUseCase {
                         savedToken.getId(),
                         user.getEmail(),
                         user.getNames(),
+                        user.getDocumentType() != null ? user.getDocumentType().name() : null,
+                        maskDocumentNumber(user.getDocumentNumber()),
                         expiresAt,
                         "Pre-registro creado exitosamente. Email enviado."
                 ));
@@ -225,6 +279,19 @@ public class PreRegisterAdminUseCase {
             password.append(chars.charAt(random.nextInt(chars.length())));
         }
         return password.toString();
+    }
+    
+    /**
+     * Enmascara un número de documento mostrando solo los últimos 4 caracteres.
+     * Ejemplo: "1234567890" -> "****7890"
+     */
+    private String maskDocumentNumber(String documentNumber) {
+        if (documentNumber == null || documentNumber.length() <= 4) {
+            return "****";
+        }
+        int visibleChars = 4;
+        int maskedLength = documentNumber.length() - visibleChars;
+        return "*".repeat(maskedLength) + documentNumber.substring(maskedLength);
     }
     
     private String hashToken(String token) {

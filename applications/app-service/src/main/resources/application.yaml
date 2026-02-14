@@ -5,8 +5,6 @@ spring:
     name: "AtlasPlatform"
   devtools:
     add-properties: false
-  profiles:
-    include: null
   # Configuración R2DBC para conexión reactiva a MySQL
   r2dbc:
     url: r2dbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:atlas_platform}
@@ -53,6 +51,10 @@ notification:
   from-email: ${NOTIFICATION_FROM_EMAIL:noreply@atlas-platform.com}
   from-name: ${NOTIFICATION_FROM_NAME:Atlas Platform}
 
+# URL del Frontend para links en correos
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:4200}
+
 # Propiedades personalizadas para el adaptador R2DBC
 adapters:
   r2dbc:
@@ -92,5 +94,13 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
     display-request-duration: true
+  cache:
+    disabled: true
+
+# Logging
+logging:
+  level:
+    co.com.atlas.api.config: DEBUG
+    co.com.atlas.jwt: DEBUG
 
 

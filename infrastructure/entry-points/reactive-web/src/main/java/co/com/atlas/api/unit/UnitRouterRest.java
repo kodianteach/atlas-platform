@@ -5,6 +5,7 @@ import co.com.atlas.api.unit.dto.UnitRequest;
 import co.com.atlas.api.unit.dto.UnitResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -61,7 +62,7 @@ public class UnitRouterRest {
                             operationId = "getUnitById",
                             summary = "Obtener unidad por ID",
                             tags = {"Units"},
-                            parameters = @Parameter(name = "id", description = "ID de la unidad", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la unidad", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Unidad encontrada"),
                                     @ApiResponse(responseCode = "404", description = "Unidad no encontrada")
@@ -77,7 +78,7 @@ public class UnitRouterRest {
                             operationId = "getUnitsByOrganization",
                             summary = "Listar unidades por organización",
                             tags = {"Units"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de unidades")
                             }
@@ -92,7 +93,7 @@ public class UnitRouterRest {
                             operationId = "getUnitsByTower",
                             summary = "Listar unidades por torre",
                             tags = {"Units"},
-                            parameters = @Parameter(name = "towerId", description = "ID de la torre", required = true),
+                            parameters = @Parameter(name = "towerId", in = ParameterIn.PATH, description = "ID de la torre", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de unidades")
                             }
@@ -107,7 +108,7 @@ public class UnitRouterRest {
                             operationId = "updateUnit",
                             summary = "Actualizar unidad",
                             tags = {"Units"},
-                            parameters = @Parameter(name = "id", description = "ID de la unidad", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la unidad", required = true),
                             requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = UnitRequest.class))),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Unidad actualizada"),
@@ -124,7 +125,7 @@ public class UnitRouterRest {
                             operationId = "deleteUnit",
                             summary = "Eliminar unidad",
                             tags = {"Units"},
-                            parameters = @Parameter(name = "id", description = "ID de la unidad", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la unidad", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Unidad eliminada")
                             }

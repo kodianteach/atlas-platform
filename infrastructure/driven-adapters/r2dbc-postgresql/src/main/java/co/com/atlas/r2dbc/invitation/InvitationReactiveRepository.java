@@ -20,4 +20,6 @@ public interface InvitationReactiveRepository extends ReactiveCrudRepository<Inv
     Flux<InvitationEntity> findByEmailAndStatus(String email, String status);
     
     Mono<Boolean> existsByEmailAndOrganizationIdAndStatus(String email, Long organizationId, String status);
+    
+    Mono<Boolean> existsByEmailAndUnitIdAndStatus(String email, Long unitId, String status);
 }

@@ -53,4 +53,14 @@ public interface UserOrganizationRepository {
      * Cuenta los usuarios activos de una organización.
      */
     Mono<Long> countActiveByOrganization(Long organizationId);
+    
+    /**
+     * Actualiza el estado de una vinculación usuario-organización.
+     * 
+     * @param userId ID del usuario
+     * @param organizationId ID de la organización
+     * @param status nuevo estado (ACTIVE, PENDING, etc.)
+     * @return Mono vacío cuando se completa
+     */
+    Mono<Void> updateStatusByUserIdAndOrganizationId(Long userId, Long organizationId, String status);
 }

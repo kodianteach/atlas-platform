@@ -25,5 +25,6 @@ public class UnitRequest {
     private Integer bedrooms;
     private Integer bathrooms;
     private Integer parkingSpots;
+    private Integer maxVehicles;
     private String status;
 }

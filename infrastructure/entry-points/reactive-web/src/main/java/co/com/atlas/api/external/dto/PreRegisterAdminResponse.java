@@ -1,5 +1,6 @@
 package co.com.atlas.api.external.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,35 +16,30 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Response del pre-registro de administrador")
 public class PreRegisterAdminResponse {
     
-    /**
-     * ID del usuario creado.
-     */
+    @Schema(description = "ID del usuario creado", example = "123")
     private Long userId;
     
-    /**
-     * ID del token de activación.
-     */
+    @Schema(description = "ID del token de activación", example = "456")
     private Long tokenId;
     
-    /**
-     * Email del usuario.
-     */
+    @Schema(description = "Email del usuario", example = "admin@conjunto.com")
     private String email;
     
-    /**
-     * Nombre del usuario.
-     */
+    @Schema(description = "Nombre del usuario", example = "Juan Pérez")
     private String names;
     
-    /**
-     * Fecha de expiración del token.
-     */
+    @Schema(description = "Tipo de documento", example = "CC")
+    private String documentType;
+    
+    @Schema(description = "Número de documento (parcialmente oculto)", example = "****7890")
+    private String documentNumberMasked;
+    
+    @Schema(description = "Fecha de expiración del token")
     private Instant expiresAt;
     
-    /**
-     * Mensaje informativo.
-     */
+    @Schema(description = "Mensaje informativo", example = "Pre-registro exitoso. Se ha enviado un email.")
     private String message;
 }

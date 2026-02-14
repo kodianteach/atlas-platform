@@ -6,6 +6,7 @@ import co.com.atlas.api.visit.dto.VisitRequestDto;
 import co.com.atlas.api.visit.dto.VisitRequestResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -62,7 +63,7 @@ public class VisitRouterRest {
                             operationId = "getVisitById",
                             summary = "Obtener solicitud por ID",
                             tags = {"Visits"},
-                            parameters = @Parameter(name = "id", description = "ID de la solicitud", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la solicitud", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Solicitud encontrada"),
                                     @ApiResponse(responseCode = "404", description = "Solicitud no encontrada")
@@ -78,7 +79,7 @@ public class VisitRouterRest {
                             operationId = "getVisitsByOrganization",
                             summary = "Listar solicitudes por organización",
                             tags = {"Visits"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de solicitudes")
                             }
@@ -93,7 +94,7 @@ public class VisitRouterRest {
                             operationId = "getVisitsByUnit",
                             summary = "Listar solicitudes por unidad",
                             tags = {"Visits"},
-                            parameters = @Parameter(name = "unitId", description = "ID de la unidad", required = true),
+                            parameters = @Parameter(name = "unitId", in = ParameterIn.PATH, description = "ID de la unidad", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de solicitudes")
                             }
@@ -108,7 +109,7 @@ public class VisitRouterRest {
                             operationId = "getPendingVisitsByOrganization",
                             summary = "Listar solicitudes pendientes",
                             tags = {"Visits"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de solicitudes pendientes")
                             }
@@ -124,7 +125,7 @@ public class VisitRouterRest {
                             summary = "Aprobar solicitud de visita",
                             description = "Aprueba la solicitud y genera código de acceso",
                             tags = {"Visits"},
-                            parameters = @Parameter(name = "id", description = "ID de la solicitud", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la solicitud", required = true),
                             requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = VisitApprovalDto.class))),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Solicitud aprobada"),
@@ -141,7 +142,7 @@ public class VisitRouterRest {
                             operationId = "rejectVisit",
                             summary = "Rechazar solicitud de visita",
                             tags = {"Visits"},
-                            parameters = @Parameter(name = "id", description = "ID de la solicitud", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la solicitud", required = true),
                             requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = VisitApprovalDto.class))),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Solicitud rechazada")
@@ -157,7 +158,7 @@ public class VisitRouterRest {
                             operationId = "cancelVisit",
                             summary = "Cancelar solicitud de visita",
                             tags = {"Visits"},
-                            parameters = @Parameter(name = "id", description = "ID de la solicitud", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la solicitud", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Solicitud cancelada")
                             }

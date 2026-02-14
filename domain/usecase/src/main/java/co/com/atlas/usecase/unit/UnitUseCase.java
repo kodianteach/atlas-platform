@@ -3,7 +3,6 @@ package co.com.atlas.usecase.unit;
 import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.common.DuplicateException;
 import co.com.atlas.model.common.NotFoundException;
-import co.com.atlas.model.organization.OrganizationType;
 import co.com.atlas.model.organization.gateways.OrganizationRepository;
 import co.com.atlas.model.unit.Unit;
 import co.com.atlas.model.unit.UnitStatus;
@@ -29,22 +28,23 @@ public class UnitUseCase {
         return organizationRepository.findById(unit.getOrganizationId())
                 .switchIfEmpty(Mono.error(new NotFoundException("Organization", unit.getOrganizationId())))
                 .flatMap(org -> {
-                    // Validaciones según tipo de organización
-                    if (org.getType() == OrganizationType.CIUDADELA && unit.getType() == UnitType.HOUSE) {
+                    // Validación: verificar si el tipo de unidad está permitido en esta organización
+                    if (!org.allowsUnitType(unit.getType().name())) {
+                        String allowedTypes = org.getAllowedUnitTypes() != null ? org.getAllowedUnitTypes() : "no configurado";
                         return Mono.error(new BusinessException(
-                                "Las casas no están permitidas en organizaciones tipo CIUDADELA",
+                                String.format("El tipo de unidad %s no está permitido en esta organización. Tipos permitidos: %s",
+                                        unit.getType().name(), allowedTypes),
                                 "INVALID_UNIT_TYPE"));
                     }
-                    if (org.getType() == OrganizationType.CONJUNTO && unit.getType() == UnitType.APARTMENT) {
-                        return Mono.error(new BusinessException(
-                                "Los apartamentos no están permitidos en organizaciones tipo CONJUNTO",
-                                "INVALID_UNIT_TYPE"));
-                    }
+                    
+                    // Validación: APARTMENT requiere torre asociada
                     if (unit.getType() == UnitType.APARTMENT && unit.getTowerId() == null) {
                         return Mono.error(new BusinessException(
                                 "Los apartamentos requieren una torre asociada",
                                 "TOWER_REQUIRED"));
                     }
+                    
+                    // Validación: HOUSE no puede tener piso
                     if (unit.getType() == UnitType.HOUSE && unit.getFloor() != null) {
                         return Mono.error(new BusinessException(
                                 "Las casas no pueden tener piso asignado",
@@ -113,6 +113,7 @@ public class UnitUseCase {
                             .bedrooms(unit.getBedrooms() != null ? unit.getBedrooms() : existing.getBedrooms())
                             .bathrooms(unit.getBathrooms() != null ? unit.getBathrooms() : existing.getBathrooms())
                             .parkingSpots(unit.getParkingSpots() != null ? unit.getParkingSpots() : existing.getParkingSpots())
+                            .maxVehicles(unit.getMaxVehicles() != null ? unit.getMaxVehicles() : existing.getMaxVehicles())
                             .isActive(unit.getIsActive() != null ? unit.getIsActive() : existing.getIsActive())
                             .build();
                     return unitRepository.save(updated);

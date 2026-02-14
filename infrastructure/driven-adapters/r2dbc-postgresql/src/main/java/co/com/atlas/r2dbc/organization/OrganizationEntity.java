@@ -37,6 +37,9 @@ public class OrganizationEntity {
     @Column("uses_zones")
     private Boolean usesZones;
     
+    @Column("allowed_unit_types")
+    private String allowedUnitTypes;
+    
     private String description;
     
     private String settings;

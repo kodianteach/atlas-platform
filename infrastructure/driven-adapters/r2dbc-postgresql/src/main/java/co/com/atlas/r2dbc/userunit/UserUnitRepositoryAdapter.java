@@ -4,6 +4,7 @@ import co.com.atlas.model.userunit.OwnershipType;
 import co.com.atlas.model.userunit.UserUnit;
 import co.com.atlas.model.userunit.gateways.UserUnitRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -18,6 +19,7 @@ import java.time.Instant;
 public class UserUnitRepositoryAdapter implements UserUnitRepository {
 
     private final UserUnitReactiveRepository repository;
+    private final DatabaseClient databaseClient;
 
     @Override
     public Mono<UserUnit> findById(Long id) {
@@ -39,7 +41,7 @@ public class UserUnitRepositoryAdapter implements UserUnitRepository {
 
     @Override
     public Flux<UserUnit> findActiveByUserId(Long userId) {
-        return repository.findByUserIdAndIsActiveTrue(userId)
+        return repository.findByUserIdAndStatusActive(userId)
                 .map(this::toDomain);
     }
 
@@ -78,7 +80,7 @@ public class UserUnitRepositoryAdapter implements UserUnitRepository {
 
     @Override
     public Mono<Long> countActiveByUnit(Long unitId) {
-        return repository.countByUnitIdAndIsActiveTrue(unitId);
+        return repository.countByUnitIdAndStatusActive(unitId);
     }
 
     private UserUnit toDomain(UserUnitEntity entity) {
@@ -91,9 +93,13 @@ public class UserUnitRepositoryAdapter implements UserUnitRepository {
                 .isPrimary(entity.getIsPrimary())
                 .moveInDate(entity.getMoveInDate())
                 .moveOutDate(entity.getMoveOutDate())
-                .isActive(entity.getIsActive())
+                .status(entity.getStatus())
+                .invitedBy(entity.getInvitedBy())
+                .joinedAt(entity.getJoinedAt())
+                .isActive("ACTIVE".equalsIgnoreCase(entity.getStatus()))
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
                 .build();
     }
 
@@ -107,9 +113,26 @@ public class UserUnitRepositoryAdapter implements UserUnitRepository {
                 .isPrimary(userUnit.getIsPrimary())
                 .moveInDate(userUnit.getMoveInDate())
                 .moveOutDate(userUnit.getMoveOutDate())
-                .isActive(userUnit.getIsActive())
+                .status(userUnit.getStatus() != null ? userUnit.getStatus() : "ACTIVE")
+                .invitedBy(userUnit.getInvitedBy())
+                .joinedAt(userUnit.getJoinedAt() != null ? userUnit.getJoinedAt() : Instant.now())
                 .createdAt(userUnit.getCreatedAt())
                 .updatedAt(userUnit.getUpdatedAt())
+                .deletedAt(userUnit.getDeletedAt())
                 .build();
+    }
+    
+    @Override
+    public Mono<Void> updateStatusByUserIdAndUnitId(Long userId, Long unitId, String status) {
+        return databaseClient.sql("""
+            UPDATE user_units 
+            SET status = :status, updated_at = :now 
+            WHERE user_id = :userId AND unit_id = :unitId
+            """)
+                .bind("status", status)
+                .bind("now", Instant.now())
+                .bind("userId", userId)
+                .bind("unitId", unitId)
+                .then();
     }
 }

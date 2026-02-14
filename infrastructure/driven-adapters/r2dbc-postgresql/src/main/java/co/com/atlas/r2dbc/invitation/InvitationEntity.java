@@ -17,7 +17,7 @@ import java.time.Instant;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("invitation")
+@Table("invitations")
 public class InvitationEntity {
     
     @Id
@@ -31,20 +31,20 @@ public class InvitationEntity {
     
     private String email;
     
-    @Column("phone_number")
-    private String phoneNumber;
-    
     @Column("invitation_token")
     private String invitationToken;
     
     private String type;
+    
+    @Column("initial_permissions")
+    private String initialPermissions;
     
     @Column("role_id")
     private Long roleId;
     
     private String status;
     
-    @Column("invited_by")
+    @Column("invited_by_user_id")
     private Long invitedBy;
     
     @Column("expires_at")
@@ -52,6 +52,20 @@ public class InvitationEntity {
     
     @Column("accepted_at")
     private Instant acceptedAt;
+    
+    @Column("invitation_sent_at")
+    private Instant invitationSentAt;
+    
+    @Column("invitation_status")
+    private String invitationMailStatus;
+    
+    @Column("retry_count")
+    private Integer retryCount;
+    
+    @Column("last_retry_at")
+    private Instant lastRetryAt;
+    
+    private String metadata;
     
     @Column("created_at")
     private Instant createdAt;

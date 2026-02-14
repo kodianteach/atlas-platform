@@ -22,5 +22,11 @@ public enum InvitationType {
     /**
      * Familiar en una unidad
      */
-    UNIT_FAMILY
+    UNIT_FAMILY,
+    
+    /**
+     * Invitación de propietario creado junto con la unidad.
+     * Usado en flujo de distribución/carga masiva de unidades.
+     */
+    OWNER_INVITATION
 }

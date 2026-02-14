@@ -20,8 +20,9 @@
 ### 1.1 Descripción del Sistema
 
 **Atlas Platform** es un backend para administración de organizaciones residenciales (condominos) que soporta:
-- **Ciudadelas**: Zonas → Torres → Apartamentos
-- **Conjuntos Cerrados**: Zonas (opcional) → Casas
+- **Ciudadelas**: Zonas → Torres → Apartamentos/Casas
+- **Conjuntos Cerrados**: Zonas (opcional) → Apartamentos/Casas
+- **Condominios**: Zonas → Casas (únicamente)
 
 ### 1.2 Alcance Funcional
 
@@ -217,8 +218,9 @@ erDiagram
         varchar code UK
         varchar name
         varchar slug UK
-        enum type "CIUDADELA|CONJUNTO"
+        enum type "CIUDADELA|CONJUNTO|CONDOMINIO"
         boolean uses_zones
+        varchar allowed_unit_types "HOUSE|APARTMENT|HOUSE,APARTMENT"
         text description
         json settings
         varchar status
@@ -531,7 +533,7 @@ erDiagram
 
 ### 4.4 organization
 
-**Propósito**: Ciudadela o Conjunto Residencial.
+**Propósito**: Ciudadela, Conjunto o Condominio Residencial.
 
 | Columna | Tipo | Null | Default | Descripción |
 |---------|------|------|---------|-------------|
@@ -540,8 +542,9 @@ erDiagram
 | code | VARCHAR(50) | NO | - | Código único |
 | name | VARCHAR(160) | NO | - | Nombre |
 | slug | VARCHAR(100) | SI | - | URL slug |
-| type | ENUM | NO | - | CIUDADELA o CONJUNTO |
+| type | ENUM | NO | - | CIUDADELA, CONJUNTO o CONDOMINIO |
 | uses_zones | BOOLEAN | NO | TRUE | Si usa zonas |
+| allowed_unit_types | VARCHAR(50) | NO | HOUSE,APARTMENT | Tipos de unidades permitidas |
 | description | TEXT | SI | - | Descripción |
 | settings | JSON | SI | - | Configuraciones |
 | status | VARCHAR(50) | NO | ACTIVE | Estado |
@@ -551,8 +554,14 @@ erDiagram
 | deleted_at | TIMESTAMP | SI | - | Soft delete |
 
 **Valores del ENUM type**:
-- `CIUDADELA`: Tiene zonas → torres → apartamentos
-- `CONJUNTO`: Tiene zonas (opcional) → casas
+- `CIUDADELA`: Tiene zonas → torres → apartamentos/casas (configurable via allowed_unit_types)
+- `CONJUNTO`: Tiene zonas (opcional) → apartamentos/casas (configurable via allowed_unit_types)
+- `CONDOMINIO`: Tiene zonas → casas (únicamente, allowed_unit_types siempre es HOUSE)
+
+**Valores de allowed_unit_types**:
+- `HOUSE`: Solo permite casas
+- `APARTMENT`: Solo permite apartamentos
+- `HOUSE,APARTMENT`: Permite ambos tipos
 
 **Referencia Backend**: NO IMPLEMENTADO
 
@@ -583,7 +592,7 @@ erDiagram
 
 ### 4.6 tower
 
-**Propósito**: Torres dentro de una zona (solo para CIUDADELA).
+**Propósito**: Torres dentro de una zona (solo para organizaciones que permiten APARTMENT en allowed_unit_types).
 
 | Columna | Tipo | Null | Default | Descripción |
 |---------|------|------|---------|-------------|
@@ -1302,9 +1311,11 @@ end note
 | Caso | Validación | Response |
 |------|------------|----------|
 | Organization sin zonas | Si `uses_zones = FALSE`, zone_id debe ser NULL | 400 |
-| Torre en CONJUNTO | `organization.type = CONJUNTO` no permite towers | 400 |
+| Torre sin permiso APARTMENT | `organization.allowed_unit_types` no contiene APARTMENT → no permite towers | 400 |
+| UnitType no permitido | `unit.type` debe estar en `organization.allowed_unit_types` | 400 |
 | Unit.code duplicado | `idx_unit_org_code` unique constraint | 409 Conflict |
 | Floor en HOUSE | Si `unit.type = HOUSE`, floor debe ser NULL | 400 |
+| APARTMENT sin tower | Si `unit.type = APARTMENT`, tower_id es requerido | 400 |
 
 ### 8.3 Invitaciones (Propuestas)
 

@@ -21,6 +21,19 @@ public class AuthUser {
     private String email;
     private String passwordHash;
     private String phone;
+    
+    /**
+     * Tipo de documento de identificación.
+     * Requerido para nuevos registros de usuario.
+     */
+    private DocumentType documentType;
+    
+    /**
+     * Número de documento de identificación.
+     * Único por tipo de documento.
+     */
+    private String documentNumber;
+    
     private boolean active;
     
     /**

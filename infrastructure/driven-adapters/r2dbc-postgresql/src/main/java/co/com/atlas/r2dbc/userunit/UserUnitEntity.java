@@ -45,12 +45,21 @@ public class UserUnitEntity {
     @Column("move_out_date")
     private LocalDate moveOutDate;
     
-    @Column("is_active")
-    private Boolean isActive;
+    @Column("status")
+    private String status;
+    
+    @Column("invited_by")
+    private Long invitedBy;
+    
+    @Column("joined_at")
+    private Instant joinedAt;
     
     @Column("created_at")
     private Instant createdAt;
     
     @Column("updated_at")
     private Instant updatedAt;
+    
+    @Column("deleted_at")
+    private Instant deletedAt;
 }

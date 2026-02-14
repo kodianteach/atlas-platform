@@ -41,13 +41,20 @@ public class NoOpNotificationAdapter implements NotificationGateway {
             String invitationUrl,
             String invitedByName,
             String expiresAt) {
-        log.debug("NoOp: sendOrganizationInvitationEmail to={}, org={}", to, organizationName);
+        log.info("NoOp: sendOrganizationInvitationEmail to={}, org={}, url={}", to, organizationName, invitationUrl);
         return Mono.empty();
     }
 
     @Override
     public Mono<Void> sendActivationConfirmationEmail(String to, String userName) {
         log.debug("NoOp: sendActivationConfirmationEmail to={}", to);
+        return Mono.empty();
+    }
+    
+    @Override
+    public Mono<Void> sendOwnerInvitationEmail(String to, String token, String activationUrl, 
+            co.com.atlas.model.invitation.Invitation invitation) {
+        log.info("NoOp: sendOwnerInvitationEmail to={}, token={}, url={}", to, token, activationUrl);
         return Mono.empty();
     }
 }

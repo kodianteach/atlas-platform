@@ -11,13 +11,16 @@ import co.com.atlas.model.comment.gateways.CommentRepository;
 import co.com.atlas.model.company.gateways.CompanyRepository;
 import co.com.atlas.model.invitation.gateways.InvitationRepository;
 import co.com.atlas.model.organization.gateways.OrganizationRepository;
+import co.com.atlas.model.permission.gateways.PermissionRepository;
 import co.com.atlas.model.poll.gateways.PollOptionRepository;
 import co.com.atlas.model.poll.gateways.PollRepository;
 import co.com.atlas.model.poll.gateways.PollVoteRepository;
 import co.com.atlas.model.post.gateways.PostRepository;
+import co.com.atlas.model.role.gateways.RoleRepository;
 import co.com.atlas.model.tower.gateways.TowerRepository;
 import co.com.atlas.model.unit.gateways.UnitRepository;
 import co.com.atlas.model.userorganization.gateways.UserOrganizationRepository;
+import co.com.atlas.model.userrolemulti.gateways.UserRoleMultiRepository;
 import co.com.atlas.model.userunit.gateways.UserUnitRepository;
 import co.com.atlas.model.visit.gateways.VisitApprovalRepository;
 import co.com.atlas.model.visit.gateways.VisitRequestRepository;
@@ -39,7 +42,14 @@ import co.com.atlas.usecase.post.PostUseCase;
 import co.com.atlas.usecase.tower.TowerUseCase;
 import co.com.atlas.usecase.unit.UnitUseCase;
 import co.com.atlas.usecase.visit.VisitRequestUseCase;
+import co.com.atlas.usecase.vehicle.VehicleUseCase;
 import co.com.atlas.usecase.zone.ZoneUseCase;
+import co.com.atlas.usecase.activation.OwnerActivationUseCase;
+import co.com.atlas.usecase.unit.UnitDistributionUseCase;
+import co.com.atlas.usecase.unit.UnitBulkUploadUseCase;
+import co.com.atlas.model.vehicle.gateways.VehicleRepository;
+import co.com.atlas.model.invitation.gateways.InvitationAuditRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -51,8 +61,20 @@ public class UseCasesConfig {
 
     // Auth Use Cases
     @Bean
-    public LoginUseCase loginUseCase(AuthUserRepository authUserRepository, JwtTokenGateway jwtTokenGateway) {
-        return new LoginUseCase(authUserRepository, jwtTokenGateway);
+    public LoginUseCase loginUseCase(
+            AuthUserRepository authUserRepository,
+            JwtTokenGateway jwtTokenGateway,
+            UserOrganizationRepository userOrganizationRepository,
+            UserRoleMultiRepository userRoleMultiRepository,
+            RoleRepository roleRepository,
+            PermissionRepository permissionRepository) {
+        return new LoginUseCase(
+                authUserRepository,
+                jwtTokenGateway,
+                userOrganizationRepository,
+                userRoleMultiRepository,
+                roleRepository,
+                permissionRepository);
     }
 
     @Bean
@@ -112,14 +134,24 @@ public class UseCasesConfig {
             UnitRepository unitRepository,
             UserOrganizationRepository userOrganizationRepository,
             UserUnitRepository userUnitRepository,
-            AuthUserRepository authUserRepository) {
+            AuthUserRepository authUserRepository,
+            NotificationGateway notificationGateway,
+            RoleRepository roleRepository,
+            UserRoleMultiRepository userRoleMultiRepository,
+            org.springframework.security.crypto.password.PasswordEncoder springPasswordEncoder,
+            @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:4200}") String frontendUrl) {
         return new InvitationUseCase(
                 invitationRepository,
                 organizationRepository,
                 unitRepository,
                 userOrganizationRepository,
                 userUnitRepository,
-                authUserRepository);
+                authUserRepository,
+                notificationGateway,
+                roleRepository,
+                userRoleMultiRepository,
+                springPasswordEncoder::encode,
+                frontendUrl);
     }
 
     // Visit Use Cases
@@ -176,12 +208,16 @@ public class UseCasesConfig {
             AuthUserRepository authUserRepository,
             AdminActivationTokenRepository tokenRepository,
             PreRegistrationAuditRepository auditRepository,
-            NotificationGateway notificationGateway) {
+            NotificationGateway notificationGateway,
+            RoleRepository roleRepository,
+            UserRoleMultiRepository userRoleMultiRepository) {
         return new PreRegisterAdminUseCase(
                 authUserRepository,
                 tokenRepository,
                 auditRepository,
-                notificationGateway);
+                notificationGateway,
+                roleRepository,
+                userRoleMultiRepository);
     }
 
     @Bean
@@ -215,11 +251,97 @@ public class UseCasesConfig {
             AuthUserRepository authUserRepository,
             CompanyRepository companyRepository,
             OrganizationRepository organizationRepository,
-            UserOrganizationRepository userOrganizationRepository) {
+            UserOrganizationRepository userOrganizationRepository,
+            RoleRepository roleRepository,
+            UserRoleMultiRepository userRoleMultiRepository) {
         return new CompleteOnboardingUseCase(
                 authUserRepository,
                 companyRepository,
                 organizationRepository,
-                userOrganizationRepository);
+                userOrganizationRepository,
+                roleRepository,
+                userRoleMultiRepository);
+    }
+
+    // Vehicle Use Cases
+    @Bean
+    public VehicleUseCase vehicleUseCase(
+            VehicleRepository vehicleRepository,
+            UnitRepository unitRepository) {
+        return new VehicleUseCase(vehicleRepository, unitRepository);
+    }
+
+    // Owner Activation Use Cases
+    @Bean
+    public OwnerActivationUseCase ownerActivationUseCase(
+            InvitationRepository invitationRepository,
+            InvitationAuditRepository invitationAuditRepository,
+            AuthUserRepository authUserRepository,
+            UserOrganizationRepository userOrganizationRepository,
+            UserUnitRepository userUnitRepository,
+            UserRoleMultiRepository userRoleMultiRepository,
+            NotificationGateway notificationGateway,
+            PasswordEncoder passwordEncoder) {
+        return new OwnerActivationUseCase(
+                invitationRepository,
+                invitationAuditRepository,
+                authUserRepository,
+                userOrganizationRepository,
+                userUnitRepository,
+                userRoleMultiRepository,
+                notificationGateway,
+                passwordEncoder::encode);
+    }
+
+    // Unit Distribution Use Cases
+    @Bean
+    public UnitDistributionUseCase unitDistributionUseCase(
+            UnitRepository unitRepository,
+            OrganizationRepository organizationRepository,
+            AuthUserRepository authUserRepository,
+            InvitationRepository invitationRepository,
+            InvitationAuditRepository invitationAuditRepository,
+            UserOrganizationRepository userOrganizationRepository,
+            UserUnitRepository userUnitRepository,
+            RoleRepository roleRepository,
+            NotificationGateway notificationGateway,
+            @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:4200}") String frontendUrl) {
+        return new UnitDistributionUseCase(
+                unitRepository,
+                organizationRepository,
+                authUserRepository,
+                invitationRepository,
+                invitationAuditRepository,
+                userOrganizationRepository,
+                userUnitRepository,
+                roleRepository,
+                notificationGateway,
+                frontendUrl);
+    }
+
+    // Unit Bulk Upload Use Cases
+    @Bean
+    public UnitBulkUploadUseCase unitBulkUploadUseCase(
+            UnitRepository unitRepository,
+            OrganizationRepository organizationRepository,
+            AuthUserRepository authUserRepository,
+            InvitationRepository invitationRepository,
+            InvitationAuditRepository invitationAuditRepository,
+            UserOrganizationRepository userOrganizationRepository,
+            UserUnitRepository userUnitRepository,
+            RoleRepository roleRepository,
+            NotificationGateway notificationGateway,
+            @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:4200}") String frontendUrl) {
+        return new UnitBulkUploadUseCase(
+                unitRepository,
+                organizationRepository,
+                authUserRepository,
+                invitationRepository,
+                invitationAuditRepository,
+                userOrganizationRepository,
+                userUnitRepository,
+                roleRepository,
+                notificationGateway,
+                frontendUrl);
     }
 }

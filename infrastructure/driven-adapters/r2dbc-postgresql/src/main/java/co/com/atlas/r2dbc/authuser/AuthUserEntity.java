@@ -32,6 +32,12 @@ public class AuthUserEntity {
     
     private String phone;
     
+    @Column("document_type")
+    private String documentType;
+    
+    @Column("document_number")
+    private String documentNumber;
+    
     @Column("is_active")
     private boolean active;
     

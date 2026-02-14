@@ -3,6 +3,7 @@ package co.com.atlas.r2dbc.userorganization;
 import co.com.atlas.model.userorganization.UserOrganization;
 import co.com.atlas.model.userorganization.gateways.UserOrganizationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,6 +18,7 @@ import java.time.Instant;
 public class UserOrganizationRepositoryAdapter implements UserOrganizationRepository {
 
     private final UserOrganizationReactiveRepository repository;
+    private final DatabaseClient databaseClient;
     private static final String ACTIVE_STATUS = "ACTIVE";
 
     @Override
@@ -99,5 +101,19 @@ public class UserOrganizationRepositoryAdapter implements UserOrganizationReposi
                 .createdAt(userOrganization.getCreatedAt())
                 .updatedAt(userOrganization.getUpdatedAt())
                 .build();
+    }
+    
+    @Override
+    public Mono<Void> updateStatusByUserIdAndOrganizationId(Long userId, Long organizationId, String status) {
+        return databaseClient.sql("""
+            UPDATE user_organizations 
+            SET status = :status, updated_at = :now 
+            WHERE user_id = :userId AND organization_id = :organizationId
+            """)
+                .bind("status", status)
+                .bind("now", Instant.now())
+                .bind("userId", userId)
+                .bind("organizationId", organizationId)
+                .then();
     }
 }

@@ -97,4 +97,15 @@ public class ApiResponse<T> {
                 .message(message)
                 .build();
     }
+    
+    /**
+     * Crea una respuesta de error con mensaje (usa status 400 por defecto).
+     */
+    public static <T> ApiResponse<T> error(String message) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .status(400)
+                .message(message)
+                .build();
+    }
 }

@@ -31,18 +31,27 @@ public class UnitHandler {
     public Mono<ServerResponse> create(ServerRequest request) {
         return request.bodyToMono(UnitRequest.class)
                 .flatMap(req -> {
+                    UnitType unitType = parseUnitType(req.getType());
+                    UnitStatus unitStatus = parseUnitStatus(req.getStatus());
+                    
+                    // Convertir IDs <= 0 a null (son campos opcionales)
+                    Long zoneId = req.getZoneId() != null && req.getZoneId() > 0 ? req.getZoneId() : null;
+                    Long towerId = req.getTowerId() != null && req.getTowerId() > 0 ? req.getTowerId() : null;
+                    Integer floor = req.getFloor() != null && req.getFloor() > 0 ? req.getFloor() : null;
+                    
                     Unit unit = Unit.builder()
                             .organizationId(req.getOrganizationId())
-                            .zoneId(req.getZoneId())
-                            .towerId(req.getTowerId())
+                            .zoneId(zoneId)
+                            .towerId(towerId)
                             .code(req.getCode())
-                            .type(req.getType() != null ? UnitType.valueOf(req.getType()) : null)
-                            .floor(req.getFloor())
+                            .type(unitType)
+                            .floor(floor)
                             .areaSqm(req.getAreaSqm())
                             .bedrooms(req.getBedrooms())
                             .bathrooms(req.getBathrooms())
                             .parkingSpots(req.getParkingSpots())
-                            .status(req.getStatus() != null ? UnitStatus.valueOf(req.getStatus()) : UnitStatus.AVAILABLE)
+                            .maxVehicles(req.getMaxVehicles())
+                            .status(unitStatus != null ? unitStatus : UnitStatus.AVAILABLE)
                             .build();
                     return unitUseCase.create(unit);
                 })
@@ -88,19 +97,23 @@ public class UnitHandler {
         Long id = Long.parseLong(request.pathVariable("id"));
         return request.bodyToMono(UnitRequest.class)
                 .flatMap(req -> {
+                    UnitType unitType = parseUnitType(req.getType());
+                    UnitStatus unitStatus = parseUnitStatus(req.getStatus());
+                    
                     Unit unit = Unit.builder()
                             .id(id)
                             .organizationId(req.getOrganizationId())
                             .zoneId(req.getZoneId())
                             .towerId(req.getTowerId())
                             .code(req.getCode())
-                            .type(req.getType() != null ? UnitType.valueOf(req.getType()) : null)
+                            .type(unitType)
                             .floor(req.getFloor())
                             .areaSqm(req.getAreaSqm())
                             .bedrooms(req.getBedrooms())
                             .bathrooms(req.getBathrooms())
                             .parkingSpots(req.getParkingSpots())
-                            .status(req.getStatus() != null ? UnitStatus.valueOf(req.getStatus()) : null)
+                            .maxVehicles(req.getMaxVehicles())
+                            .status(unitStatus)
                             .build();
                     return unitUseCase.update(id, unit);
                 })
@@ -149,10 +162,43 @@ public class UnitHandler {
                 .bedrooms(unit.getBedrooms())
                 .bathrooms(unit.getBathrooms())
                 .parkingSpots(unit.getParkingSpots())
+                .maxVehicles(unit.getMaxVehicles())
                 .status(unit.getStatus() != null ? unit.getStatus().name() : null)
                 .isActive(unit.getIsActive())
                 .createdAt(unit.getCreatedAt())
                 .updatedAt(unit.getUpdatedAt())
                 .build();
+    }
+    
+    /**
+     * Parsea el tipo de unidad con validación y mensaje de error claro.
+     */
+    private UnitType parseUnitType(String type) {
+        if (type == null || type.isBlank()) {
+            return null;
+        }
+        try {
+            return UnitType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(
+                    String.format("Tipo de unidad inválido: '%s'. Valores permitidos: APARTMENT, HOUSE", type),
+                    "INVALID_UNIT_TYPE");
+        }
+    }
+    
+    /**
+     * Parsea el estado de unidad con validación y mensaje de error claro.
+     */
+    private UnitStatus parseUnitStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        try {
+            return UnitStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(
+                    String.format("Estado de unidad inválido: '%s'. Valores permitidos: AVAILABLE, OCCUPIED, MAINTENANCE", status),
+                    "INVALID_UNIT_STATUS");
+        }
     }
 }

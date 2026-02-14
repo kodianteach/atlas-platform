@@ -1,5 +1,6 @@
 package co.com.atlas.model.notification.gateways;
 
+import co.com.atlas.model.invitation.Invitation;
 import reactor.core.publisher.Mono;
 
 /**
@@ -64,4 +65,21 @@ public interface NotificationGateway {
      * @return Mono vacío cuando se completa
      */
     Mono<Void> sendActivationConfirmationEmail(String to, String userName);
+    
+    /**
+     * Envía invitación de propietario por email.
+     * Usado en flujo de distribución/carga masiva de unidades.
+     * 
+     * @param to dirección de correo del propietario
+     * @param token token de activación
+     * @param activationUrl URL completa de activación con token
+     * @param invitation datos de la invitación (para obtener metadata adicional)
+     * @return Mono vacío cuando se completa
+     */
+    Mono<Void> sendOwnerInvitationEmail(
+            String to,
+            String token,
+            String activationUrl,
+            Invitation invitation
+    );
 }

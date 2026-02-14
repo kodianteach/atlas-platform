@@ -3,7 +3,6 @@ package co.com.atlas.usecase.tower;
 import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.common.DuplicateException;
 import co.com.atlas.model.common.NotFoundException;
-import co.com.atlas.model.organization.OrganizationType;
 import co.com.atlas.model.organization.gateways.OrganizationRepository;
 import co.com.atlas.model.tower.Tower;
 import co.com.atlas.model.tower.gateways.TowerRepository;
@@ -30,9 +29,10 @@ public class TowerUseCase {
                 .switchIfEmpty(Mono.error(new NotFoundException("Zone", tower.getZoneId())))
                 .flatMap(zone -> organizationRepository.findById(zone.getOrganizationId())
                         .flatMap(org -> {
-                            if (org.getType() != OrganizationType.CIUDADELA) {
+                            // Validación: Torres solo se permiten si la organización tiene APARTMENT habilitado
+                            if (!org.allowsUnitType("APARTMENT")) {
                                 return Mono.error(new BusinessException(
-                                        "Las torres solo están disponibles en organizaciones tipo CIUDADELA",
+                                        "Las torres solo están disponibles en organizaciones que permiten apartamentos",
                                         "TOWERS_NOT_ALLOWED"));
                             }
                             return towerRepository.existsByZoneIdAndCode(tower.getZoneId(), tower.getCode())

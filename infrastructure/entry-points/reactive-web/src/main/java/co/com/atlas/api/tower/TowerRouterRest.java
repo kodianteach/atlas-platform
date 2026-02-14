@@ -5,6 +5,7 @@ import co.com.atlas.api.tower.dto.TowerRequest;
 import co.com.atlas.api.tower.dto.TowerResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -61,7 +62,7 @@ public class TowerRouterRest {
                             operationId = "getTowerById",
                             summary = "Obtener torre por ID",
                             tags = {"Towers"},
-                            parameters = @Parameter(name = "id", description = "ID de la torre", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la torre", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Torre encontrada"),
                                     @ApiResponse(responseCode = "404", description = "Torre no encontrada")
@@ -77,7 +78,7 @@ public class TowerRouterRest {
                             operationId = "getTowersByZone",
                             summary = "Listar torres por zona",
                             tags = {"Towers"},
-                            parameters = @Parameter(name = "zoneId", description = "ID de la zona", required = true),
+                            parameters = @Parameter(name = "zoneId", in = ParameterIn.PATH, description = "ID de la zona", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de torres")
                             }
@@ -92,7 +93,7 @@ public class TowerRouterRest {
                             operationId = "getTowersByOrganization",
                             summary = "Listar torres por organización",
                             tags = {"Towers"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de torres")
                             }
@@ -107,7 +108,7 @@ public class TowerRouterRest {
                             operationId = "updateTower",
                             summary = "Actualizar torre",
                             tags = {"Towers"},
-                            parameters = @Parameter(name = "id", description = "ID de la torre", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la torre", required = true),
                             requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = TowerRequest.class))),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Torre actualizada"),
@@ -124,7 +125,7 @@ public class TowerRouterRest {
                             operationId = "deleteTower",
                             summary = "Eliminar torre",
                             tags = {"Towers"},
-                            parameters = @Parameter(name = "id", description = "ID de la torre", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la torre", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Torre eliminada")
                             }

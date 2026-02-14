@@ -19,7 +19,6 @@ public class Invitation {
     private Long organizationId;
     private Long unitId;
     private String email;
-    private String phoneNumber;
     private String invitationToken;
     private InvitationType type;
     private Long roleId;
@@ -27,6 +26,32 @@ public class Invitation {
     private InvitationStatus status;
     private Long invitedBy;
     private Instant expiresAt;
+    
+    /**
+     * Timestamp cuando se envió la invitación por email.
+     */
+    private Instant invitationSentAt;
+    
+    /**
+     * Estado del envío de la invitación: PENDING, SENT, FAILED.
+     */
+    private String invitationMailStatus;
+    
+    /**
+     * Número de reintentos de envío realizados.
+     */
+    private Integer retryCount;
+    
+    /**
+     * Timestamp del último reintento de envío.
+     */
+    private Instant lastRetryAt;
+    
+    /**
+     * Metadata adicional en formato JSON.
+     */
+    private String metadata;
+    
     private Instant acceptedAt;
     private Instant createdAt;
     private Instant updatedAt;

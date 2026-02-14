@@ -49,6 +49,12 @@ public class UnitEntity {
     @Column("parking_spots")
     private Integer parkingSpots;
     
+    @Column("max_vehicles")
+    private Integer maxVehicles;
+    
+    @Column("vehicles_enabled")
+    private Boolean vehiclesEnabled;
+    
     private String status;
     
     @Column("is_active")

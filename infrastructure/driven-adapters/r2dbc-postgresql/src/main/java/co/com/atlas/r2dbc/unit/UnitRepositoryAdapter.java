@@ -76,6 +76,8 @@ public class UnitRepositoryAdapter implements UnitRepository {
                         .bedrooms(row.get("bedrooms", Integer.class))
                         .bathrooms(row.get("bathrooms", Integer.class))
                         .parkingSpots(row.get("parking_spots", Integer.class))
+                        .maxVehicles(row.get("max_vehicles", Integer.class))
+                        .vehiclesEnabled(row.get("vehicles_enabled", Boolean.class))
                         .status(row.get("status", String.class))
                         .isActive(row.get("is_active", Boolean.class))
                         .createdAt(row.get("created_at", Instant.class))
@@ -122,6 +124,8 @@ public class UnitRepositoryAdapter implements UnitRepository {
                 .bedrooms(entity.getBedrooms())
                 .bathrooms(entity.getBathrooms())
                 .parkingSpots(entity.getParkingSpots())
+                .maxVehicles(entity.getMaxVehicles())
+                .vehiclesEnabled(entity.getVehiclesEnabled())
                 .status(entity.getStatus() != null ? UnitStatus.valueOf(entity.getStatus()) : null)
                 .isActive(entity.getIsActive())
                 .createdAt(entity.getCreatedAt())
@@ -143,11 +147,80 @@ public class UnitRepositoryAdapter implements UnitRepository {
                 .bedrooms(unit.getBedrooms())
                 .bathrooms(unit.getBathrooms())
                 .parkingSpots(unit.getParkingSpots())
+                .maxVehicles(unit.getMaxVehicles())
+                .vehiclesEnabled(unit.getVehiclesEnabled())
                 .status(unit.getStatus() != null ? unit.getStatus().name() : null)
                 .isActive(unit.getIsActive())
                 .createdAt(unit.getCreatedAt())
                 .updatedAt(unit.getUpdatedAt())
                 .deletedAt(unit.getDeletedAt())
                 .build();
+    }
+    
+    @Override
+    public Flux<Unit> findByOrganizationIdAndCodeIn(Long organizationId, java.util.List<String> codes) {
+        if (codes == null || codes.isEmpty()) {
+            return Flux.empty();
+        }
+        String sql = """
+            SELECT * FROM unit 
+            WHERE organization_id = :organizationId 
+            AND code IN (:codes) 
+            AND deleted_at IS NULL
+            """;
+        
+        return databaseClient.sql(sql)
+                .bind("organizationId", organizationId)
+                .bind("codes", codes)
+                .map((row, metadata) -> UnitEntity.builder()
+                        .id(row.get("id", Long.class))
+                        .organizationId(row.get("organization_id", Long.class))
+                        .zoneId(row.get("zone_id", Long.class))
+                        .towerId(row.get("tower_id", Long.class))
+                        .code(row.get("code", String.class))
+                        .type(row.get("type", String.class))
+                        .floor(row.get("floor", Integer.class))
+                        .areaSqm(row.get("area_sqm", BigDecimal.class))
+                        .bedrooms(row.get("bedrooms", Integer.class))
+                        .bathrooms(row.get("bathrooms", Integer.class))
+                        .parkingSpots(row.get("parking_spots", Integer.class))
+                        .maxVehicles(row.get("max_vehicles", Integer.class))
+                        .vehiclesEnabled(row.get("vehicles_enabled", Boolean.class))
+                        .status(row.get("status", String.class))
+                        .isActive(row.get("is_active", Boolean.class))
+                        .createdAt(row.get("created_at", Instant.class))
+                        .updatedAt(row.get("updated_at", Instant.class))
+                        .build())
+                .all()
+                .map(this::toDomain);
+    }
+    
+    @Override
+    public Flux<Unit> saveAll(java.util.List<Unit> units) {
+        if (units == null || units.isEmpty()) {
+            return Flux.empty();
+        }
+        return Flux.fromIterable(units)
+                .flatMap(this::save);
+    }
+    
+    @Override
+    public Mono<Long> countByOrganizationIdAndCodeIn(Long organizationId, java.util.List<String> codes) {
+        if (codes == null || codes.isEmpty()) {
+            return Mono.just(0L);
+        }
+        String sql = """
+            SELECT COUNT(*) FROM unit 
+            WHERE organization_id = :organizationId 
+            AND code IN (:codes) 
+            AND deleted_at IS NULL
+            """;
+        
+        return databaseClient.sql(sql)
+                .bind("organizationId", organizationId)
+                .bind("codes", codes)
+                .map((row, metadata) -> row.get(0, Long.class))
+                .one()
+                .defaultIfEmpty(0L);
     }
 }

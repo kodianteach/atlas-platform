@@ -80,6 +80,7 @@ public class EmailNotificationAdapter implements NotificationGateway {
     @Override
     public Mono<Void> sendOrganizationInvitationEmail(String to, String organizationName, 
             String invitationUrl, String invitedByName, String expiresAt) {
+        log.info("EmailNotificationAdapter: Sending organization invitation email to={}, org={}, url={}", to, organizationName, invitationUrl);
         String subject = String.format("Invitación a %s", organizationName);
         String htmlContent = buildOrganizationInvitationEmail(organizationName, 
                 invitationUrl, invitedByName, expiresAt);
@@ -279,7 +280,7 @@ public class EmailNotificationAdapter implements NotificationGateway {
                             <h3>Próximos pasos:</h3>
                             <ul>
                                 <li>Crea tu compañía (holding)</li>
-                                <li>Configura tu primera organización (ciudadela o conjunto)</li>
+                                <li>Configura tu primera organización (ciudadela, conjunto o condominio)</li>
                                 <li>Invita a residentes y personal de seguridad</li>
                             </ul>
                         </div>
@@ -293,5 +294,78 @@ public class EmailNotificationAdapter implements NotificationGateway {
             </body>
             </html>
             """.formatted(userName);
+    }
+    
+    @Override
+    public Mono<Void> sendOwnerInvitationEmail(String to, String token, String activationUrl, 
+            co.com.atlas.model.invitation.Invitation invitation) {
+        String subject = "🏠 Atlas Platform - Invitación como propietario";
+        String htmlContent = buildOwnerInvitationEmail(to, token, activationUrl, invitation);
+        return sendEmail(to, subject, htmlContent);
+    }
+    
+    private String buildOwnerInvitationEmail(String email, String token, String activationUrl,
+            co.com.atlas.model.invitation.Invitation invitation) {
+        String fullActivationUrl = activationUrl + "?token=" + token;
+        
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+                    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                    .header { background: linear-gradient(135deg, #2E7D32, #43A047); color: white; padding: 30px; text-align: center; }
+                    .header h1 { margin: 0; font-size: 24px; }
+                    .content { padding: 30px; color: #333; }
+                    .btn { display: inline-block; background: #2E7D32; color: white !important; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+                    .btn:hover { background: #1B5E20; }
+                    .info-box { background: #E8F5E9; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #43A047; }
+                    .footer { background: #f8f8f8; padding: 20px; text-align: center; font-size: 12px; color: #666; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>🏠 Bienvenido a tu nuevo hogar</h1>
+                    </div>
+                    <div class="content">
+                        <h2>¡Has sido invitado como propietario!</h2>
+                        <p>Te damos la bienvenida a la plataforma de gestión de tu residencia.</p>
+                        
+                        <div class="info-box">
+                            <p><strong>Email:</strong> %s</p>
+                        </div>
+                        
+                        <p>Para activar tu cuenta y comenzar a usar la plataforma:</p>
+                        
+                        <div style="text-align: center;">
+                            <a href="%s" class="btn">Activar mi cuenta</a>
+                        </div>
+                        
+                        <p style="font-size: 12px; color: #666;">
+                            Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:<br>
+                            <span style="word-break: break-all;">%s</span>
+                        </p>
+                        
+                        <div class="info-box">
+                            <h3>¿Qué podrás hacer?</h3>
+                            <ul>
+                                <li>Gestionar tu unidad residencial</li>
+                                <li>Registrar vehículos</li>
+                                <li>Autorizar visitas</li>
+                                <li>Recibir notificaciones de la administración</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <p>Este correo fue enviado automáticamente. Por favor no responder.</p>
+                        <p>© 2026 Atlas Platform. Todos los derechos reservados.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """.formatted(email, fullActivationUrl, fullActivationUrl);
     }
 }

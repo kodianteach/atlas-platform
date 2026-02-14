@@ -19,7 +19,6 @@ public class InvitationResponse {
     private Long organizationId;
     private Long unitId;
     private String email;
-    private String phoneNumber;
     private String invitationToken;
     private String type;
     private Long roleId;

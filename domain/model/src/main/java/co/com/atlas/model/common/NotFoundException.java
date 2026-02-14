@@ -12,4 +12,8 @@ public class NotFoundException extends BusinessException {
     public NotFoundException(String resource, Long id) {
         super(resource + " con ID " + id + " no encontrado", "NOT_FOUND", 404);
     }
+    
+    public NotFoundException(String resource, String identifier) {
+        super(resource + " con código/identifier " + identifier + " no encontrado", "NOT_FOUND", 404);
+    }
 }

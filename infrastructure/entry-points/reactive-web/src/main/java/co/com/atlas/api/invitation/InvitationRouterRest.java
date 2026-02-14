@@ -6,6 +6,7 @@ import co.com.atlas.api.invitation.dto.InvitationRequest;
 import co.com.atlas.api.invitation.dto.InvitationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -63,7 +64,7 @@ public class InvitationRouterRest {
                             operationId = "getInvitationById",
                             summary = "Obtener invitación por ID",
                             tags = {"Invitations"},
-                            parameters = @Parameter(name = "id", description = "ID de la invitación", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la invitación", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Invitación encontrada"),
                                     @ApiResponse(responseCode = "404", description = "Invitación no encontrada")
@@ -79,7 +80,7 @@ public class InvitationRouterRest {
                             operationId = "getInvitationsByOrganization",
                             summary = "Listar invitaciones por organización",
                             tags = {"Invitations"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de invitaciones")
                             }
@@ -94,7 +95,7 @@ public class InvitationRouterRest {
                             operationId = "getInvitationsByUnit",
                             summary = "Listar invitaciones por unidad",
                             tags = {"Invitations"},
-                            parameters = @Parameter(name = "unitId", description = "ID de la unidad", required = true),
+                            parameters = @Parameter(name = "unitId", in = ParameterIn.PATH, description = "ID de la unidad", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de invitaciones")
                             }
@@ -129,7 +130,7 @@ public class InvitationRouterRest {
                             operationId = "cancelInvitation",
                             summary = "Cancelar invitación",
                             tags = {"Invitations"},
-                            parameters = @Parameter(name = "id", description = "ID de la invitación", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la invitación", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Invitación cancelada")
                             }
@@ -144,7 +145,7 @@ public class InvitationRouterRest {
                             operationId = "resendInvitation",
                             summary = "Reenviar invitación",
                             tags = {"Invitations"},
-                            parameters = @Parameter(name = "id", description = "ID de la invitación", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la invitación", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Invitación reenviada")
                             }

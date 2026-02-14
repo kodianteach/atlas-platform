@@ -5,6 +5,7 @@ import co.com.atlas.api.post.dto.PostRequest;
 import co.com.atlas.api.post.dto.PostResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -58,7 +59,7 @@ public class PostRouterRest {
                             operationId = "getPostById",
                             summary = "Obtener post por ID",
                             tags = {"Posts"},
-                            parameters = @Parameter(name = "id", description = "ID del post", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID del post", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Post encontrado",
                                             content = @Content(schema = @Schema(implementation = PostResponse.class))),
@@ -75,7 +76,7 @@ public class PostRouterRest {
                             operationId = "updatePost",
                             summary = "Actualizar post",
                             tags = {"Posts"},
-                            parameters = @Parameter(name = "id", description = "ID del post", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID del post", required = true),
                             requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = PostRequest.class))),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Post actualizado"),
@@ -92,7 +93,7 @@ public class PostRouterRest {
                             operationId = "deletePost",
                             summary = "Eliminar post",
                             tags = {"Posts"},
-                            parameters = @Parameter(name = "id", description = "ID del post", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID del post", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Post eliminado"),
                                     @ApiResponse(responseCode = "404", description = "Post no encontrado")
@@ -108,7 +109,7 @@ public class PostRouterRest {
                             operationId = "getPostsByOrganization",
                             summary = "Listar posts por organización",
                             tags = {"Posts"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de posts")
                             }
@@ -123,7 +124,7 @@ public class PostRouterRest {
                             operationId = "getPublishedPosts",
                             summary = "Listar posts publicados",
                             tags = {"Posts"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de posts publicados")
                             }
@@ -138,7 +139,7 @@ public class PostRouterRest {
                             operationId = "publishPost",
                             summary = "Publicar post",
                             tags = {"Posts"},
-                            parameters = @Parameter(name = "id", description = "ID del post", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID del post", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Post publicado"),
                                     @ApiResponse(responseCode = "404", description = "Post no encontrado")
@@ -154,7 +155,7 @@ public class PostRouterRest {
                             operationId = "archivePost",
                             summary = "Archivar post",
                             tags = {"Posts"},
-                            parameters = @Parameter(name = "id", description = "ID del post", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID del post", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Post archivado")
                             }
@@ -169,7 +170,7 @@ public class PostRouterRest {
                             operationId = "togglePinPost",
                             summary = "Fijar/Desfijar post",
                             tags = {"Posts"},
-                            parameters = @Parameter(name = "id", description = "ID del post", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID del post", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Estado de fijado cambiado")
                             }

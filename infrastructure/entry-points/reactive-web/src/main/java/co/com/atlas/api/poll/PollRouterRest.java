@@ -6,6 +6,7 @@ import co.com.atlas.api.poll.dto.PollResponse;
 import co.com.atlas.api.poll.dto.VoteRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -60,7 +61,7 @@ public class PollRouterRest {
                             summary = "Obtener encuesta por ID",
                             description = "Obtiene una encuesta con sus opciones y conteo de votos",
                             tags = {"Polls"},
-                            parameters = @Parameter(name = "id", description = "ID de la encuesta", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la encuesta", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Encuesta encontrada",
                                             content = @Content(schema = @Schema(implementation = PollResponse.class))),
@@ -77,7 +78,7 @@ public class PollRouterRest {
                             operationId = "getPollsByOrganization",
                             summary = "Listar encuestas por organización",
                             tags = {"Polls"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de encuestas")
                             }
@@ -92,7 +93,7 @@ public class PollRouterRest {
                             operationId = "getActivePollsByOrganization",
                             summary = "Listar encuestas activas",
                             tags = {"Polls"},
-                            parameters = @Parameter(name = "organizationId", description = "ID de la organización", required = true),
+                            parameters = @Parameter(name = "organizationId", in = ParameterIn.PATH, description = "ID de la organización", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Lista de encuestas activas")
                             }
@@ -108,7 +109,7 @@ public class PollRouterRest {
                             summary = "Activar encuesta",
                             description = "Cambia el estado de la encuesta a ACTIVE",
                             tags = {"Polls"},
-                            parameters = @Parameter(name = "id", description = "ID de la encuesta", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la encuesta", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Encuesta activada"),
                                     @ApiResponse(responseCode = "404", description = "Encuesta no encontrada")
@@ -125,7 +126,7 @@ public class PollRouterRest {
                             summary = "Cerrar encuesta",
                             description = "Cambia el estado de la encuesta a CLOSED",
                             tags = {"Polls"},
-                            parameters = @Parameter(name = "id", description = "ID de la encuesta", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la encuesta", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Encuesta cerrada")
                             }
@@ -141,7 +142,7 @@ public class PollRouterRest {
                             summary = "Votar en encuesta",
                             description = "Registra un voto en una encuesta activa (requiere header X-User-Id)",
                             tags = {"Polls"},
-                            parameters = @Parameter(name = "id", description = "ID de la encuesta", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la encuesta", required = true),
                             requestBody = @RequestBody(
                                     required = true,
                                     content = @Content(schema = @Schema(implementation = VoteRequest.class))
@@ -163,7 +164,7 @@ public class PollRouterRest {
                             summary = "Obtener resultados de encuesta",
                             description = "Obtiene los resultados con conteo de votos y porcentajes",
                             tags = {"Polls"},
-                            parameters = @Parameter(name = "id", description = "ID de la encuesta", required = true),
+                            parameters = @Parameter(name = "id", in = ParameterIn.PATH, description = "ID de la encuesta", required = true),
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Resultados de la encuesta",
                                             content = @Content(schema = @Schema(implementation = PollResponse.class)))

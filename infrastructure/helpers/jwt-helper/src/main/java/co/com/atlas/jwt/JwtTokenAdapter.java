@@ -12,6 +12,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtTokenAdapter implements JwtTokenGateway {
@@ -67,6 +69,8 @@ public class JwtTokenAdapter implements JwtTokenGateway {
                         .parseSignedClaims(token);
                 return true;
             } catch (JwtException | IllegalArgumentException e) {
+                log.error("JWT validation failed: {} - Token prefix: {}", e.getMessage(), 
+                    token.length() > 20 ? token.substring(0, 20) + "..." : token);
                 return false;
             }
         });

@@ -22,6 +22,11 @@ public class Organization {
     private String slug;
     private OrganizationType type;
     private Boolean usesZones;
+    /**
+     * Tipos de unidades permitidas en esta organización.
+     * Valores posibles: "HOUSE", "APARTMENT", "HOUSE,APARTMENT"
+     */
+    private String allowedUnitTypes;
     private String description;
     private String settings; // JSON como String
     private String status;
@@ -29,4 +34,16 @@ public class Organization {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant deletedAt;
+    
+    /**
+     * Verifica si esta organización permite un tipo de unidad específico.
+     * @param unitType El tipo de unidad a verificar (HOUSE o APARTMENT)
+     * @return true si el tipo está permitido, false en caso contrario
+     */
+    public boolean allowsUnitType(String unitType) {
+        if (allowedUnitTypes == null || allowedUnitTypes.isBlank()) {
+            return true; // Por defecto permite todo si no está configurado
+        }
+        return allowedUnitTypes.toUpperCase().contains(unitType.toUpperCase());
+    }
 }
