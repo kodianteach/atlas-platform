@@ -28,13 +28,13 @@ public class Organization {
      */
     private String allowedUnitTypes;
     private String description;
-    private String settings; // JSON como String
+    private String settings;
     private String status;
     private Boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;
     private Instant deletedAt;
-    
+
     /**
      * Verifica si esta organización permite un tipo de unidad específico.
      * @param unitType El tipo de unidad a verificar (HOUSE o APARTMENT)
@@ -42,7 +42,7 @@ public class Organization {
      */
     public boolean allowsUnitType(String unitType) {
         if (allowedUnitTypes == null || allowedUnitTypes.isBlank()) {
-            return true; // Por defecto permite todo si no está configurado
+            return true;
         }
         return allowedUnitTypes.toUpperCase().contains(unitType.toUpperCase());
     }

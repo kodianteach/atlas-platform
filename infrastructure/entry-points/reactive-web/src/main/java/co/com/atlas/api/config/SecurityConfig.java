@@ -52,6 +52,8 @@ public class SecurityConfig {
                         .pathMatchers("/api/units/**").authenticated()
                         // Endpoints de visitas (requieren autenticación)
                         .pathMatchers("/api/visits/**").authenticated()
+                        // Endpoints de autorizaciones (requieren autenticación)
+                        .pathMatchers("/api/authorizations/**").authenticated()
                         // Endpoints públicos de invitaciones (validar, aceptar y reenviar)
                         .pathMatchers("/api/invitations/**").permitAll()
                         // Endpoints externos de pre-registro de administradores

@@ -42,9 +42,6 @@ public class UserUnitEntity {
     @Column("move_in_date")
     private LocalDate moveInDate;
     
-    @Column("move_out_date")
-    private LocalDate moveOutDate;
-    
     @Column("status")
     private String status;
     

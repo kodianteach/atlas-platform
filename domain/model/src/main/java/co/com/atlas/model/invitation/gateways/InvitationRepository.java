@@ -1,6 +1,7 @@
 package co.com.atlas.model.invitation.gateways;
 
 import co.com.atlas.model.invitation.Invitation;
+import co.com.atlas.model.invitation.InvitationFilters;
 import co.com.atlas.model.invitation.InvitationMailStatus;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -108,4 +109,24 @@ public interface InvitationRepository {
      * @return true si existe
      */
     Mono<Boolean> existsPendingByEmailAndUnitId(String email, Long unitId);
+    
+    /**
+     * Searches invitations by organization with dynamic filters.
+     * Used for admin invitation history with filtering support.
+     *
+     * @param organizationId the organization ID
+     * @param filters optional filter criteria
+     * @return matching invitations
+     */
+    Flux<Invitation> findByOrganizationIdWithFilters(Long organizationId, InvitationFilters filters);
+    
+    /**
+     * Searches invitations by unit with dynamic filters.
+     * Used for owner/resident invitation history scoped to their unit.
+     *
+     * @param unitId the unit ID
+     * @param filters optional filter criteria
+     * @return matching invitations
+     */
+    Flux<Invitation> findByUnitIdWithFilters(Long unitId, InvitationFilters filters);
 }

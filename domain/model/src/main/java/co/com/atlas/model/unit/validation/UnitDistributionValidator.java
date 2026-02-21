@@ -229,6 +229,24 @@ public final class UnitDistributionValidator {
     }
     
     /**
+     * Valida que el número de unidades a crear no exceda el límite máximo configurado.
+     *
+     * @param unitCount cantidad de unidades a crear
+     * @param maxAllowed límite máximo permitido por la organización
+     * @throws BusinessException si unitCount excede maxAllowed
+     */
+    public static void validateMaxDistributionLimit(int unitCount, int maxAllowed) {
+        if (unitCount > maxAllowed) {
+            throw new BusinessException(
+                "El rango solicitado genera " + unitCount + " unidades, pero el límite máximo configurado es " + maxAllowed + ". Reduce el rango o ajusta la configuración",
+                "MAX_DISTRIBUTION_LIMIT_EXCEEDED"
+            );
+        }
+        LOGGER.log(System.Logger.Level.DEBUG,
+            "Validación de límite: unidades={0}, máximo={1}", unitCount, maxAllowed);
+    }
+
+    /**
      * Ejecuta validación completa de la distribución.
      * 
      * @param distribution distribución a validar

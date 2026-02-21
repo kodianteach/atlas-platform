@@ -18,7 +18,7 @@ spring:
       validation-query: SELECT 1
   # Configuración Flyway para migraciones (usa JDBC ya que Flyway no soporta R2DBC directamente)
   flyway:
-    enabled: true
+    enabled: false
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:atlas_platform}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     user: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:12345}
@@ -54,6 +54,11 @@ notification:
 # URL del Frontend para links en correos
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:4200}
+
+# Crypto configuration for EdDSA key encryption
+atlas:
+  crypto:
+    master-key: ${CRYPTO_MASTER_KEY:DefaultDevMasterKey256bit!}
 
 # Propiedades personalizadas para el adaptador R2DBC
 adapters:

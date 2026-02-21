@@ -16,9 +16,6 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Request para distribución de unidades por rango")
 public class UnitDistributionRequest {
     
-    @Schema(description = "ID de la organización donde se crearán las unidades", example = "1", required = true)
-    private Long organizationId;
-    
     @Schema(description = "Número inicial del rango de unidades", example = "101", required = true)
     private Integer rangeStart;
     

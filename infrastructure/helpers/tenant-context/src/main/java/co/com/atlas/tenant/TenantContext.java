@@ -2,11 +2,14 @@ package co.com.atlas.tenant;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Thread-local context holder for multi-tenant information.
  * <p>
  * This class provides a centralized way to store and retrieve tenant-specific
- * information (organization ID and user ID) for the current request context.
+ * information (organization ID, user ID, and roles) for the current request context.
  * It uses ThreadLocal to ensure thread safety in reactive environments.
  * </p>
  * 
@@ -15,10 +18,13 @@ import lombok.extern.slf4j.Slf4j;
  * // Set tenant context (typically done in a WebFilter)
  * TenantContext.setOrganizationId(123L);
  * TenantContext.setUserId(456L);
+ * TenantContext.setRoles(List.of("ADMIN_ATLAS"));
  * 
  * // Retrieve tenant context (in repositories, services, etc.)
  * Long orgId = TenantContext.getOrganizationId();
  * Long userId = TenantContext.getUserId();
+ * List&lt;String&gt; roles = TenantContext.getRoles();
+ * String primary = TenantContext.getPrimaryRole();
  * 
  * // Clear context (mandatory at the end of request)
  * TenantContext.clear();
@@ -36,6 +42,7 @@ public final class TenantContext {
 
     private static final ThreadLocal<Long> CURRENT_ORGANIZATION_ID = new ThreadLocal<>();
     private static final ThreadLocal<Long> CURRENT_USER_ID = new ThreadLocal<>();
+    private static final ThreadLocal<List<String>> CURRENT_ROLES = new ThreadLocal<>();
 
     // Private constructor to prevent instantiation
     private TenantContext() {
@@ -133,6 +140,47 @@ public final class TenantContext {
     }
 
     /**
+     * Sets the roles for the current thread/request context.
+     * 
+     * @param roles the list of role codes (e.g., ADMIN_ATLAS, OWNER, RESIDENT)
+     */
+    public static void setRoles(List<String> roles) {
+        CURRENT_ROLES.set(roles != null ? Collections.unmodifiableList(roles) : Collections.emptyList());
+        log.debug("TenantContext: Set roles={}", roles);
+    }
+
+    /**
+     * Retrieves the roles for the current thread/request context.
+     * 
+     * @return unmodifiable list of role codes, or empty list if not set
+     */
+    public static List<String> getRoles() {
+        List<String> roles = CURRENT_ROLES.get();
+        return roles != null ? roles : Collections.emptyList();
+    }
+
+    /**
+     * Retrieves the primary role for the current context.
+     * Returns the first role in the list if available.
+     * 
+     * @return the primary role code, or null if no roles set
+     */
+    public static String getPrimaryRole() {
+        List<String> roles = getRoles();
+        return roles.isEmpty() ? null : roles.get(0);
+    }
+
+    /**
+     * Checks if the current context has a specific role.
+     * 
+     * @param roleCode the role code to check (e.g., "ADMIN_ATLAS", "OWNER", "RESIDENT")
+     * @return true if the current context has the specified role
+     */
+    public static boolean hasRole(String roleCode) {
+        return getRoles().contains(roleCode);
+    }
+
+    /**
      * Clears all tenant context data from the current thread.
      * <p>
      * <strong>CRITICAL:</strong> This method MUST be called at the end of every request
@@ -143,11 +191,13 @@ public final class TenantContext {
     public static void clear() {
         Long orgId = CURRENT_ORGANIZATION_ID.get();
         Long userId = CURRENT_USER_ID.get();
+        List<String> roles = CURRENT_ROLES.get();
         
         CURRENT_ORGANIZATION_ID.remove();
         CURRENT_USER_ID.remove();
+        CURRENT_ROLES.remove();
         
-        log.debug("TenantContext: Cleared context (orgId={}, userId={})", orgId, userId);
+        log.debug("TenantContext: Cleared context (orgId={}, userId={}, roles={})", orgId, userId, roles);
     }
 
     /**

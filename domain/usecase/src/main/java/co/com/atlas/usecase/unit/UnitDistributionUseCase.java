@@ -14,11 +14,15 @@ import co.com.atlas.model.invitation.InvitationType;
 import co.com.atlas.model.invitation.gateways.InvitationAuditRepository;
 import co.com.atlas.model.invitation.gateways.InvitationRepository;
 import co.com.atlas.model.notification.gateways.NotificationGateway;
+import co.com.atlas.model.organization.OrganizationConfiguration;
+import co.com.atlas.model.organization.gateways.OrganizationConfigurationRepository;
 import co.com.atlas.model.organization.gateways.OrganizationRepository;
 import co.com.atlas.model.role.gateways.RoleRepository;
 import co.com.atlas.model.unit.OwnerInfo;
+import co.com.atlas.model.unit.RejectedUnit;
 import co.com.atlas.model.unit.Unit;
 import co.com.atlas.model.unit.UnitDistribution;
+import co.com.atlas.model.unit.UnitDistributionResult;
 import co.com.atlas.model.unit.UnitStatus;
 import co.com.atlas.model.unit.gateways.UnitRepository;
 import co.com.atlas.model.unit.validation.UnitDistributionValidator;
@@ -34,6 +38,7 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -56,6 +61,7 @@ public class UnitDistributionUseCase {
     
     private final UnitRepository unitRepository;
     private final OrganizationRepository organizationRepository;
+    private final OrganizationConfigurationRepository organizationConfigurationRepository;
     private final AuthUserRepository authUserRepository;
     private final InvitationRepository invitationRepository;
     private final InvitationAuditRepository invitationAuditRepository;
@@ -70,12 +76,14 @@ public class UnitDistributionUseCase {
     
     /**
      * Crea unidades basadas en una distribución (rango).
+     * Soporta creación parcial: si algunas unidades ya existen, crea solo las nuevas
+     * y retorna un resultado con conteos de creadas y rechazadas.
      * 
      * @param distribution parámetros de distribución
      * @param createdBy ID del usuario que crea las unidades
-     * @return lista de unidades creadas
+     * @return resultado con unidades creadas y rechazadas
      */
-    public Flux<Unit> createByDistribution(UnitDistribution distribution, Long createdBy) {
+    public Mono<UnitDistributionResult> createByDistribution(UnitDistribution distribution, Long createdBy) {
         // Validar la distribución completa
         UnitDistributionValidator.validateComplete(distribution);
         
@@ -86,10 +94,10 @@ public class UnitDistributionUseCase {
         
         return organizationRepository.findById(distribution.getOrganizationId())
             .switchIfEmpty(Mono.error(new NotFoundException("Organization", distribution.getOrganizationId())))
-            .flatMapMany(org -> {
+            .flatMap(org -> {
                 // Validar que el tipo de unidad está permitido
                 if (!org.allowsUnitType(distribution.getType().name())) {
-                    return Flux.error(new BusinessException(
+                    return Mono.error(new BusinessException(
                         "El tipo de unidad " + distribution.getType().name() + " no está permitido en esta organización",
                         "INVALID_UNIT_TYPE"
                     ));
@@ -98,36 +106,59 @@ public class UnitDistributionUseCase {
                 // Generar códigos a crear
                 List<String> codesToCreate = generateCodes(distribution);
                 
-                // Verificar que no existan unidades con esos códigos
-                return unitRepository.countByOrganizationIdAndCodeIn(distribution.getOrganizationId(), codesToCreate)
-                    .flatMapMany(count -> {
-                        if (count > 0) {
-                            // Obtener códigos existentes para el mensaje de error
-                            return unitRepository.findByOrganizationIdAndCodeIn(distribution.getOrganizationId(), codesToCreate)
-                                .map(Unit::getCode)
-                                .collectList()
-                                .flatMapMany(existingCodes -> Flux.error(new DuplicateException(
-                                    "Ya existen unidades con los siguientes códigos: " + String.join(", ", existingCodes)
-                                )));
+                // Obtener límite máximo desde la tabla de configuración de organización
+                return organizationConfigurationRepository.findByOrganizationId(distribution.getOrganizationId())
+                    .map(OrganizationConfiguration::getMaxUnitsPerDistributionOrDefault)
+                    .defaultIfEmpty(OrganizationConfiguration.DEFAULT_MAX_UNITS_PER_DISTRIBUTION)
+                    .flatMap(maxAllowed -> {
+                        UnitDistributionValidator.validateMaxDistributionLimit(codesToCreate.size(), maxAllowed);
+                
+                // Buscar códigos que ya existen para creación parcial
+                return unitRepository.findByOrganizationIdAndCodeIn(distribution.getOrganizationId(), codesToCreate)
+                    .map(Unit::getCode)
+                    .collectList()
+                    .flatMap(existingCodes -> {
+                        // Generar lista de rechazados
+                        List<RejectedUnit> rejectedUnits = existingCodes.stream()
+                            .map(RejectedUnit::duplicate)
+                            .toList();
+                        
+                        // Filtrar unidades que sí se pueden crear (no duplicadas)
+                        List<Unit> allUnits = buildUnits(distribution);
+                        List<Unit> unitsToCreate = allUnits.stream()
+                            .filter(u -> !existingCodes.contains(u.getCode()))
+                            .toList();
+                        
+                        // Si no hay unidades nuevas que crear, retornar solo rechazados
+                        if (unitsToCreate.isEmpty()) {
+                            LOGGER.log(System.Logger.Level.INFO, 
+                                "Todas las unidades ya existen ({0} rechazadas)", rejectedUnits.size());
+                            return Mono.just(new UnitDistributionResult(
+                                Collections.emptyList(), rejectedUnits
+                            ));
                         }
                         
-                        // Crear todas las unidades
-                        List<Unit> unitsToCreate = buildUnits(distribution);
-                        
+                        // Crear solo las unidades nuevas
                         return unitRepository.saveAll(unitsToCreate)
                             .collectList()
-                            .flatMapMany(savedUnits -> {
+                            .flatMap(savedUnits -> {
                                 LOGGER.log(System.Logger.Level.INFO, 
-                                    "Unidades creadas exitosamente: {0}", savedUnits.size());
+                                    "Unidades creadas: {0}, rechazadas: {1}", 
+                                    savedUnits.size(), rejectedUnits.size());
+                                
+                                UnitDistributionResult result = new UnitDistributionResult(
+                                    savedUnits, rejectedUnits
+                                );
                                 
                                 // Si hay owner, procesar
                                 if (distribution.getOwner() != null) {
                                     return processOwner(distribution, savedUnits, createdBy)
-                                        .thenMany(Flux.fromIterable(savedUnits));
+                                        .thenReturn(result);
                                 }
                                 
-                                return Flux.fromIterable(savedUnits);
+                                return Mono.just(result);
                             });
+                    });
                     });
             });
     }

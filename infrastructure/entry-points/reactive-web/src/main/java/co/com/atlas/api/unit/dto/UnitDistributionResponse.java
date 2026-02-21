@@ -28,6 +28,12 @@ public class UnitDistributionResponse {
     @Schema(description = "Códigos de las unidades creadas")
     private List<String> unitCodes;
     
+    @Schema(description = "Total de unidades rechazadas por duplicado", example = "3")
+    private int rejectedCount;
+    
+    @Schema(description = "Detalle de unidades rechazadas")
+    private List<RejectedUnitDto> rejectedUnits;
+    
     @Schema(description = "Invitaciones enviadas", example = "1")
     private int invitationsSent;
     
@@ -36,4 +42,20 @@ public class UnitDistributionResponse {
     
     @Schema(description = "Errores por unidad (código -> mensaje de error)")
     private Map<String, String> errors;
+    
+    /**
+     * DTO para unidades rechazadas.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "Detalle de unidad rechazada")
+    public static class RejectedUnitDto {
+        @Schema(description = "Código de la unidad rechazada", example = "A-1")
+        private String code;
+        
+        @Schema(description = "Motivo del rechazo", example = "Ya existe")
+        private String reason;
+    }
 }

@@ -27,5 +27,7 @@ include ':reactive-web'
 project(':reactive-web').projectDir = file('./infrastructure/entry-points/reactive-web')
 include ':jwt-helper'
 project(':jwt-helper').projectDir = file('./infrastructure/helpers/jwt-helper')
+include ':crypto-helper'
+project(':crypto-helper').projectDir = file('./infrastructure/helpers/crypto-helper')
 include ':tenant-context'
 project(':tenant-context').projectDir = file('./infrastructure/helpers/tenant-context')

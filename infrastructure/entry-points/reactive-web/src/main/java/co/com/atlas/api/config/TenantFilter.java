@@ -52,7 +52,6 @@ public class TenantFilter implements WebFilter {
             "/api/auth/refresh",
             "/api/auth/register",
             "/api/users/register",
-            "/api/invitations",
             "/api/external",
             "/swagger-ui",
             "/v3/api-docs",
@@ -86,36 +85,19 @@ public class TenantFilter implements WebFilter {
         String token = authHeader.substring(BEARER_PREFIX.length());
 
         try {
-            // Parsear claims del JWT
+            // Solo logear; TenantContext se establece en JwtAuthenticationFilter
+            // (después de la validación async, en el hilo correcto)
             Claims claims = parseToken(token);
-            
-            // Extraer información del tenant
             Long userId = extractUserId(claims);
             Long organizationId = extractOrganizationId(claims);
 
-            if (userId != null && organizationId != null) {
-                // Establecer contexto del tenant
-                TenantContext.setUserId(userId);
-                TenantContext.setOrganizationId(organizationId);
-                
-                log.debug("TenantFilter - Tenant context set: userId={}, organizationId={}", 
-                         userId, organizationId);
-            } else {
-                log.warn("TenantFilter - Missing tenant claims in token: userId={}, organizationId={}", 
-                        userId, organizationId);
-            }
+            log.debug("TenantFilter - Token parsed: userId={}, organizationId={} (context set by JwtAuthFilter)", 
+                     userId, organizationId);
 
-            // Continuar cadena de filtros y asegurar limpieza
-            return chain.filter(exchange)
-                    .doFinally(signalType -> {
-                        TenantContext.clear();
-                        log.debug("TenantFilter - Tenant context cleared (signal: {})", signalType);
-                    });
+            return chain.filter(exchange);
 
         } catch (Exception e) {
-            log.error("TenantFilter - Error extracting tenant context from token: {}", e.getMessage(), e);
-            // Limpiar contexto en error y continuar (auth filter manejará tokens inválidos)
-            TenantContext.clear();
+            log.error("TenantFilter - Error parsing token: {}", e.getMessage());
             return chain.filter(exchange);
         }
     }

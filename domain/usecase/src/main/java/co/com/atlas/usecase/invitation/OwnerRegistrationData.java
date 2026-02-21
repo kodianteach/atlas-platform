@@ -16,5 +16,6 @@ public class OwnerRegistrationData {
     private String phone;
     private DocumentType documentType;
     private String documentNumber;
+    private String email;
     private String password;
 }

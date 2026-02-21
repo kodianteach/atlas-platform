@@ -308,6 +308,14 @@ public class JwtTokenAdapter implements JwtTokenGateway {
             return "/access-control";
         }
         
+        if (roleNames.contains("PORTERO_GENERAL") && enabledModules.contains("ATLAS_CORE")) {
+            return "/doorman/entry-control";
+        }
+        
+        if (roleNames.contains("PORTERO_DELIVERY") && enabledModules.contains("ATLAS_CORE")) {
+            return "/doorman/entry-control";
+        }
+        
         // Fallback
         return "/dashboard";
     }

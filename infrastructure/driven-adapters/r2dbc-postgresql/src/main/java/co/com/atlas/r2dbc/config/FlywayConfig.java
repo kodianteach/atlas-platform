@@ -2,6 +2,7 @@ package co.com.atlas.r2dbc.config;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,8 +17,11 @@ import java.util.List;
  * Las migraciones deben ubicarse en: src/main/resources/db/migration
  * Convención de nombres: V{version}__{description}.sql
  * Ejemplo: V1__create_initial_tables.sql
+ * 
+ * Se activa/desactiva con spring.flyway.enabled (default: true).
  */
 @Configuration
+@ConditionalOnProperty(name = "spring.flyway.enabled", havingValue = "true", matchIfMissing = true)
 public class FlywayConfig {
 
     @Value("${spring.flyway.url}")

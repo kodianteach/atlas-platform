@@ -223,4 +223,48 @@ public class UnitRepositoryAdapter implements UnitRepository {
                 .one()
                 .defaultIfEmpty(0L);
     }
+    
+    @Override
+    public Flux<Unit> searchByOrganizationIdAndCodePrefix(Long organizationId, String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return Flux.empty();
+        }
+        String sql = """
+            SELECT * FROM unit 
+            WHERE organization_id = :organizationId 
+            AND code LIKE :prefix 
+            AND deleted_at IS NULL 
+            ORDER BY code 
+            LIMIT 20
+            """;
+        
+        return databaseClient.sql(sql)
+                .bind("organizationId", organizationId)
+                .bind("prefix", prefix + "%")
+                .map((row, metadata) -> toDomain(mapRowToEntity(row)))
+                .all();
+    }
+    
+    private UnitEntity mapRowToEntity(io.r2dbc.spi.Row row) {
+        return UnitEntity.builder()
+                .id(row.get("id", Long.class))
+                .organizationId(row.get("organization_id", Long.class))
+                .zoneId(row.get("zone_id", Long.class))
+                .towerId(row.get("tower_id", Long.class))
+                .code(row.get("code", String.class))
+                .type(row.get("type", String.class))
+                .floor(row.get("floor", Integer.class))
+                .areaSqm(row.get("area_sqm", java.math.BigDecimal.class))
+                .bedrooms(row.get("bedrooms", Integer.class))
+                .bathrooms(row.get("bathrooms", Integer.class))
+                .parkingSpots(row.get("parking_spots", Integer.class))
+                .maxVehicles(row.get("max_vehicles", Integer.class))
+                .vehiclesEnabled(row.get("vehicles_enabled", Boolean.class))
+                .status(row.get("status", String.class))
+                .isActive(row.get("is_active", Boolean.class))
+                .createdAt(row.get("created_at", java.time.Instant.class))
+                .updatedAt(row.get("updated_at", java.time.Instant.class))
+                .deletedAt(row.get("deleted_at", java.time.Instant.class))
+                .build();
+    }
 }

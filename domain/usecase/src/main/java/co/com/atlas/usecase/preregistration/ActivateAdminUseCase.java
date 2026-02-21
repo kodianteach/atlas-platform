@@ -20,6 +20,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.regex.Pattern;
 
 /**
  * Caso de uso para activación de administradores pre-registrados.
@@ -29,6 +30,12 @@ import java.util.Base64;
  */
 @RequiredArgsConstructor
 public class ActivateAdminUseCase {
+    
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final Pattern HAS_UPPERCASE = Pattern.compile("[A-Z]");
+    private static final Pattern HAS_LOWERCASE = Pattern.compile("[a-z]");
+    private static final Pattern HAS_DIGIT = Pattern.compile("[0-9]");
+    private static final Pattern VALID_CHARS = Pattern.compile("^[A-Za-z0-9@$!%*?&]+$");
     
     private final AuthUserRepository authUserRepository;
     private final AdminActivationTokenRepository tokenRepository;
@@ -163,7 +170,9 @@ public class ActivateAdminUseCase {
     }
     
     private Mono<ActivateResult> activateUser(AdminActivationToken token, ActivateCommand command) {
-        return authUserRepository.findById(token.getUserId())
+        // Validate password policy before proceeding
+        return validatePasswordPolicy(command.newPassword())
+                .then(authUserRepository.findById(token.getUserId()))
                 .flatMap(user -> {
                     // Actualizar usuario con nueva contraseña y estado ACTIVATED
                     AuthUser updatedUser = user.toBuilder()
@@ -211,6 +220,43 @@ public class ActivateAdminUseCase {
                 ));
     }
     
+    /**
+     * Validates that the new password meets security policy requirements:
+     * - At least 8 characters
+     * - At least 1 uppercase letter [A-Z]
+     * - At least 1 lowercase letter [a-z]
+     * - At least 1 digit [0-9]
+     * - Only allowed special characters: @$!%*?&
+     */
+    private Mono<Void> validatePasswordPolicy(String password) {
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
+            return Mono.error(new BusinessException(
+                    "La contraseña debe tener al menos " + MIN_PASSWORD_LENGTH + " caracteres",
+                    "WEAK_PASSWORD"));
+        }
+        if (!HAS_UPPERCASE.matcher(password).find()) {
+            return Mono.error(new BusinessException(
+                    "La contraseña debe contener al menos una letra mayúscula",
+                    "WEAK_PASSWORD"));
+        }
+        if (!HAS_LOWERCASE.matcher(password).find()) {
+            return Mono.error(new BusinessException(
+                    "La contraseña debe contener al menos una letra minúscula",
+                    "WEAK_PASSWORD"));
+        }
+        if (!HAS_DIGIT.matcher(password).find()) {
+            return Mono.error(new BusinessException(
+                    "La contraseña debe contener al menos un número",
+                    "WEAK_PASSWORD"));
+        }
+        if (!VALID_CHARS.matcher(password).matches()) {
+            return Mono.error(new BusinessException(
+                    "La contraseña contiene caracteres no permitidos. Solo se permiten letras, números y @$!%*?&",
+                    "WEAK_PASSWORD"));
+        }
+        return Mono.empty();
+    }
+
     private Mono<AdminActivationToken> markTokenExpired(AdminActivationToken token) {
         AdminActivationToken expiredToken = token.toBuilder()
                 .status(ActivationTokenStatus.EXPIRED)

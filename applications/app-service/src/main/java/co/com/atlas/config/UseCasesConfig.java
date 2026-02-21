@@ -47,6 +47,18 @@ import co.com.atlas.usecase.zone.ZoneUseCase;
 import co.com.atlas.usecase.activation.OwnerActivationUseCase;
 import co.com.atlas.usecase.unit.UnitDistributionUseCase;
 import co.com.atlas.usecase.unit.UnitBulkUploadUseCase;
+import co.com.atlas.usecase.organization.OrganizationSettingsUseCase;
+import co.com.atlas.usecase.porter.CreatePorterUseCase;
+import co.com.atlas.usecase.porter.EnrollPorterDeviceUseCase;
+import co.com.atlas.usecase.porter.ListPortersByOrganizationUseCase;
+import co.com.atlas.usecase.porter.RegeneratePorterEnrollmentUrlUseCase;
+import co.com.atlas.usecase.porter.ValidateEnrollmentTokenUseCase;
+import co.com.atlas.model.crypto.gateways.CryptoKeyGeneratorGateway;
+import co.com.atlas.model.crypto.gateways.CryptoKeyRepository;
+import co.com.atlas.model.organization.gateways.OrganizationConfigurationRepository;
+import co.com.atlas.model.porter.gateways.PorterEnrollmentAuditRepository;
+import co.com.atlas.model.porter.gateways.PorterEnrollmentTokenRepository;
+import co.com.atlas.model.porter.gateways.PorterRepository;
 import co.com.atlas.model.vehicle.gateways.VehicleRepository;
 import co.com.atlas.model.invitation.gateways.InvitationAuditRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -139,6 +151,10 @@ public class UseCasesConfig {
             RoleRepository roleRepository,
             UserRoleMultiRepository userRoleMultiRepository,
             org.springframework.security.crypto.password.PasswordEncoder springPasswordEncoder,
+            InvitationAuditRepository invitationAuditRepository,
+            OrganizationConfigurationRepository organizationConfigurationRepository,
+            co.com.atlas.model.permission.gateways.PermissionRepository permissionRepository,
+            co.com.atlas.model.userunitpermission.gateways.UserUnitPermissionRepository userUnitPermissionRepository,
             @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:4200}") String frontendUrl) {
         return new InvitationUseCase(
                 invitationRepository,
@@ -151,7 +167,18 @@ public class UseCasesConfig {
                 roleRepository,
                 userRoleMultiRepository,
                 springPasswordEncoder::encode,
+                invitationAuditRepository,
+                organizationConfigurationRepository,
+                permissionRepository,
+                userUnitPermissionRepository,
                 frontendUrl);
+    }
+
+    @Bean
+    public co.com.atlas.usecase.invitation.UserLookupUseCase userLookupUseCase(
+            AuthUserRepository authUserRepository,
+            UnitRepository unitRepository) {
+        return new co.com.atlas.usecase.invitation.UserLookupUseCase(authUserRepository, unitRepository);
     }
 
     // Visit Use Cases
@@ -298,6 +325,7 @@ public class UseCasesConfig {
     public UnitDistributionUseCase unitDistributionUseCase(
             UnitRepository unitRepository,
             OrganizationRepository organizationRepository,
+            OrganizationConfigurationRepository organizationConfigurationRepository,
             AuthUserRepository authUserRepository,
             InvitationRepository invitationRepository,
             InvitationAuditRepository invitationAuditRepository,
@@ -309,6 +337,7 @@ public class UseCasesConfig {
         return new UnitDistributionUseCase(
                 unitRepository,
                 organizationRepository,
+                organizationConfigurationRepository,
                 authUserRepository,
                 invitationRepository,
                 invitationAuditRepository,
@@ -343,5 +372,76 @@ public class UseCasesConfig {
                 roleRepository,
                 notificationGateway,
                 frontendUrl);
+    }
+
+    // Organization Settings Use Cases
+    @Bean
+    public OrganizationSettingsUseCase organizationSettingsUseCase(
+            OrganizationRepository organizationRepository,
+            OrganizationConfigurationRepository organizationConfigurationRepository) {
+        return new OrganizationSettingsUseCase(organizationRepository, organizationConfigurationRepository);
+    }
+
+    // Porter Use Cases
+    @Bean
+    public CreatePorterUseCase createPorterUseCase(
+            PorterEnrollmentTokenRepository porterEnrollmentTokenRepository,
+            PorterEnrollmentAuditRepository porterEnrollmentAuditRepository,
+            AuthUserRepository authUserRepository,
+            RoleRepository roleRepository,
+            UserRoleMultiRepository userRoleMultiRepository,
+            OrganizationRepository organizationRepository) {
+        return new CreatePorterUseCase(
+                porterEnrollmentTokenRepository,
+                porterEnrollmentAuditRepository,
+                authUserRepository,
+                roleRepository,
+                userRoleMultiRepository,
+                organizationRepository);
+    }
+
+    @Bean
+    public ListPortersByOrganizationUseCase listPortersByOrganizationUseCase(
+            PorterRepository porterRepository) {
+        return new ListPortersByOrganizationUseCase(porterRepository);
+    }
+
+    @Bean
+    public RegeneratePorterEnrollmentUrlUseCase regeneratePorterEnrollmentUrlUseCase(
+            PorterRepository porterRepository,
+            PorterEnrollmentTokenRepository porterEnrollmentTokenRepository,
+            PorterEnrollmentAuditRepository porterEnrollmentAuditRepository) {
+        return new RegeneratePorterEnrollmentUrlUseCase(
+                porterRepository,
+                porterEnrollmentTokenRepository,
+                porterEnrollmentAuditRepository);
+    }
+
+    @Bean
+    public ValidateEnrollmentTokenUseCase validateEnrollmentTokenUseCase(
+            PorterEnrollmentTokenRepository porterEnrollmentTokenRepository,
+            PorterRepository porterRepository,
+            OrganizationRepository organizationRepository) {
+        return new ValidateEnrollmentTokenUseCase(
+                porterEnrollmentTokenRepository,
+                porterRepository,
+                organizationRepository);
+    }
+
+    @Bean
+    public EnrollPorterDeviceUseCase enrollPorterDeviceUseCase(
+            PorterEnrollmentTokenRepository porterEnrollmentTokenRepository,
+            PorterEnrollmentAuditRepository porterEnrollmentAuditRepository,
+            AuthUserRepository authUserRepository,
+            OrganizationRepository organizationRepository,
+            CryptoKeyRepository cryptoKeyRepository,
+            CryptoKeyGeneratorGateway cryptoKeyGeneratorGateway) {
+        return new EnrollPorterDeviceUseCase(
+                porterEnrollmentTokenRepository,
+                porterEnrollmentAuditRepository,
+                authUserRepository,
+                organizationRepository,
+                cryptoKeyRepository,
+                cryptoKeyGeneratorGateway);
     }
 }

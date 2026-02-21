@@ -11,9 +11,12 @@ import co.com.atlas.model.auth.DocumentType;
 import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.unit.BulkUnitRow;
 import co.com.atlas.model.unit.OwnerInfo;
+import co.com.atlas.model.unit.RejectedUnit;
 import co.com.atlas.model.unit.Unit;
 import co.com.atlas.model.unit.UnitDistribution;
+import co.com.atlas.model.unit.UnitDistributionResult;
 import co.com.atlas.model.unit.UnitType;
+import co.com.atlas.tenant.TenantContext;
 import co.com.atlas.usecase.unit.UnitBulkUploadUseCase;
 import co.com.atlas.usecase.unit.UnitDistributionUseCase;
 import lombok.RequiredArgsConstructor;
@@ -53,10 +56,9 @@ public class UnitDistributionHandler {
         return extractCreatedBy()
             .flatMap(createdBy -> request.bodyToMono(UnitDistributionRequest.class)
                 .flatMap(req -> {
-                    // Validaciones básicas
-                    if (req.getOrganizationId() == null) {
-                        return Mono.error(new BusinessException("organizationId es requerido"));
-                    }
+                    // Obtener organizationId del TenantContext (multi-tenant estricto)
+                    Long organizationId = TenantContext.getOrganizationIdOrThrow();
+                    
                     if (req.getRangeStart() == null || req.getRangeEnd() == null) {
                         return Mono.error(new BusinessException("rangeStart y rangeEnd son requeridos"));
                     }
@@ -64,7 +66,7 @@ public class UnitDistributionHandler {
                     UnitType unitType = parseUnitType(req.getUnitType());
                     
                     UnitDistribution distribution = UnitDistribution.builder()
-                            .organizationId(req.getOrganizationId())
+                            .organizationId(organizationId)
                             .min(req.getRangeStart())
                             .max(req.getRangeEnd())
                             .code(req.getCodePrefix())
@@ -78,28 +80,38 @@ public class UnitDistributionHandler {
                             .floor(req.getFloor())
                             .build();
                     
-                    return unitDistributionUseCase.createByDistribution(distribution, createdBy)
-                            .collectList();
+                    return unitDistributionUseCase.createByDistribution(distribution, createdBy);
                 })
-                .flatMap(units -> {
-                    List<Long> unitIds = units.stream()
+                .flatMap(result -> {
+                    List<Long> unitIds = result.createdUnits().stream()
                             .map(Unit::getId)
                             .collect(Collectors.toList());
-                    List<String> unitCodes = units.stream()
+                    List<String> unitCodes = result.createdUnits().stream()
                             .map(Unit::getCode)
                             .collect(Collectors.toList());
                     
+                    List<UnitDistributionResponse.RejectedUnitDto> rejectedDtos = result.rejectedUnits().stream()
+                            .map(r -> UnitDistributionResponse.RejectedUnitDto.builder()
+                                    .code(r.code())
+                                    .reason(r.reason())
+                                    .build())
+                            .collect(Collectors.toList());
+                    
+                    String message = buildDistributionMessage(result);
+                    
                     UnitDistributionResponse response = UnitDistributionResponse.builder()
-                            .unitsCreated(units.size())
+                            .unitsCreated(result.getCreatedCount())
                             .unitIds(unitIds)
                             .unitCodes(unitCodes)
-                            .invitationsSent(0) // Por calcular si hay owner
-                            .message("Se crearon " + units.size() + " unidades exitosamente")
+                            .rejectedCount(result.getRejectedCount())
+                            .rejectedUnits(rejectedDtos)
+                            .invitationsSent(0)
+                            .message(message)
                             .errors(new HashMap<>())
                             .build();
                     
                     ApiResponse<UnitDistributionResponse> apiResponse = 
-                            ApiResponse.success(response, "Distribución completada");
+                            ApiResponse.success(response, message);
                     
                     return ServerResponse.ok()
                             .contentType(MediaType.APPLICATION_JSON)
@@ -319,5 +331,20 @@ public class UnitDistributionHandler {
         return ServerResponse.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(errorResponse);
+    }
+
+    /**
+     * Construye mensaje descriptivo según el resultado de la distribución.
+     */
+    private String buildDistributionMessage(UnitDistributionResult result) {
+        if (result.isFullSuccess()) {
+            return "Se crearon " + result.getCreatedCount() + " unidades exitosamente";
+        }
+        if (result.isFullRejection()) {
+            return "No se crearon unidades. Todas las unidades del rango especificado ya existen en tu organización (" 
+                + result.getRejectedCount() + " rechazadas por duplicado)";
+        }
+        // Parcial
+        return "Creadas: " + result.getCreatedCount() + " | Rechazadas: " + result.getRejectedCount() + " (duplicadas)";
     }
 }

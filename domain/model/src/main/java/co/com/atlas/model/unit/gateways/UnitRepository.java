@@ -80,4 +80,15 @@ public interface UnitRepository {
      * @return cantidad de unidades que coinciden
      */
     Mono<Long> countByOrganizationIdAndCodeIn(Long organizationId, java.util.List<String> codes);
+    
+    /**
+     * Searches units by organization and code prefix using case-insensitive matching.
+     * Used for autocomplete in owner registration flow.
+     * Results are limited to 20 items and ordered by code.
+     *
+     * @param organizationId the organization ID
+     * @param prefix the code prefix to search for (e.g., "A-1")
+     * @return matching units, limited to 20
+     */
+    Flux<Unit> searchByOrganizationIdAndCodePrefix(Long organizationId, String prefix);
 }

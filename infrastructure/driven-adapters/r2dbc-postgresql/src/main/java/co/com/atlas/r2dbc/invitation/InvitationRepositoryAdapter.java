@@ -1,9 +1,11 @@
 package co.com.atlas.r2dbc.invitation;
 
 import co.com.atlas.model.invitation.Invitation;
+import co.com.atlas.model.invitation.InvitationFilters;
 import co.com.atlas.model.invitation.InvitationStatus;
 import co.com.atlas.model.invitation.InvitationType;
 import co.com.atlas.model.invitation.gateways.InvitationRepository;
+import co.com.atlas.r2dbc.common.DynamicQueryBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
@@ -12,6 +14,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementación del gateway InvitationRepository usando R2DBC.
@@ -228,6 +231,70 @@ public class InvitationRepositoryAdapter implements InvitationRepository {
                 .bind("organizationId", organizationId)
                 .bind("unitId", unitId)
                 .map((row, metadata) -> InvitationEntity.builder()
+                        .id(row.get("id", Long.class))
+                        .organizationId(row.get("organization_id", Long.class))
+                        .unitId(row.get("unit_id", Long.class))
+                        .email(row.get("email", String.class))
+                        .invitationToken(row.get("invitation_token", String.class))
+                        .type(row.get("type", String.class))
+                        .roleId(row.get("role_id", Long.class))
+                        .initialPermissions(row.get("initial_permissions", String.class))
+                        .status(row.get("status", String.class))
+                        .invitedBy(row.get("invited_by_user_id", Long.class))
+                        .expiresAt(row.get("expires_at", Instant.class))
+                        .acceptedAt(row.get("accepted_at", Instant.class))
+                        .invitationSentAt(row.get("invitation_sent_at", Instant.class))
+                        .invitationMailStatus(row.get("invitation_status", String.class))
+                        .retryCount(row.get("retry_count", Integer.class))
+                        .lastRetryAt(row.get("last_retry_at", Instant.class))
+                        .metadata(row.get("metadata", String.class))
+                        .createdAt(row.get("created_at", Instant.class))
+                        .updatedAt(row.get("updated_at", Instant.class))
+                        .build())
+                .all()
+                .map(this::toDomain);
+    }
+    
+    @Override
+    public Flux<Invitation> findByOrganizationIdWithFilters(Long organizationId, InvitationFilters filters) {
+        DynamicQueryBuilder builder = DynamicQueryBuilder.from("invitations")
+                .where("organization_id", organizationId);
+        applyFilters(builder, filters);
+        return executeFilterQuery(builder);
+    }
+    
+    @Override
+    public Flux<Invitation> findByUnitIdWithFilters(Long unitId, InvitationFilters filters) {
+        DynamicQueryBuilder builder = DynamicQueryBuilder.from("invitations")
+                .where("unit_id", unitId);
+        applyFilters(builder, filters);
+        return executeFilterQuery(builder);
+    }
+    
+    private void applyFilters(DynamicQueryBuilder builder, InvitationFilters filters) {
+        if (filters == null) {
+            builder.orderBy("created_at", "DESC").limit(50);
+            return;
+        }
+        builder.whereOptional("type", filters.getType() != null ? filters.getType().name() : null)
+                .whereOptional("status", filters.getStatus() != null ? filters.getStatus().name() : null)
+                .whereOptional("unit_id", filters.getUnitId())
+                .whereOptionalIlike("email", filters.getSearch())
+                .whereOptionalBetween("created_at", filters.getDateFrom(), filters.getDateTo())
+                .orderBy("created_at", "DESC")
+                .limit(50);
+    }
+    
+    private Flux<Invitation> executeFilterQuery(DynamicQueryBuilder builder) {
+        String sql = builder.buildSelect();
+        Map<String, Object> bindings = builder.getBindings();
+        
+        var spec = databaseClient.sql(sql);
+        for (Map.Entry<String, Object> entry : bindings.entrySet()) {
+            spec = spec.bind(entry.getKey(), entry.getValue());
+        }
+        
+        return spec.map((row, metadata) -> InvitationEntity.builder()
                         .id(row.get("id", Long.class))
                         .organizationId(row.get("organization_id", Long.class))
                         .unitId(row.get("unit_id", Long.class))
