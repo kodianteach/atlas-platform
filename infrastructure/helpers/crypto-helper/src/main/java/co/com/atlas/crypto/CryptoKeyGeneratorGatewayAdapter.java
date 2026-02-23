@@ -8,7 +8,11 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.UUID;
 
 /**
@@ -39,6 +43,19 @@ public class CryptoKeyGeneratorGatewayAdapter implements CryptoKeyGeneratorGatew
                     .isActive(true)
                     .createdAt(Instant.now())
                     .build();
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<String> signPayload(String payload, String encryptedPrivateKey) {
+        return Mono.fromCallable(() -> {
+            PrivateKey privateKey = cryptoKeyGeneratorService.decryptPrivateKey(encryptedPrivateKey);
+            byte[] payloadBytes = payload.getBytes(StandardCharsets.UTF_8);
+            Signature sig = Signature.getInstance("Ed25519");
+            sig.initSign(privateKey);
+            sig.update(payloadBytes);
+            byte[] signature = sig.sign();
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(signature);
         }).subscribeOn(Schedulers.boundedElastic());
     }
 }

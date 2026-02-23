@@ -1,6 +1,7 @@
 package co.com.atlas.config;
 
 import co.com.atlas.model.access.gateways.AccessCodeRepository;
+import co.com.atlas.model.access.gateways.AccessEventRepository;
 import co.com.atlas.model.access.gateways.AccessScanLogRepository;
 import co.com.atlas.model.preregistration.gateways.AdminActivationTokenRepository;
 import co.com.atlas.model.notification.gateways.NotificationGateway;
@@ -26,6 +27,11 @@ import co.com.atlas.model.visit.gateways.VisitApprovalRepository;
 import co.com.atlas.model.visit.gateways.VisitRequestRepository;
 import co.com.atlas.model.zone.gateways.ZoneRepository;
 import co.com.atlas.usecase.access.AccessCodeUseCase;
+import co.com.atlas.usecase.access.GetRevocationListUseCase;
+import co.com.atlas.usecase.access.RegisterVehicleExitUseCase;
+import co.com.atlas.usecase.access.SyncAccessEventsUseCase;
+import co.com.atlas.usecase.access.ValidateAuthorizationUseCase;
+import co.com.atlas.usecase.access.ValidateByDocumentUseCase;
 import co.com.atlas.usecase.preregistration.ActivateAdminUseCase;
 import co.com.atlas.usecase.preregistration.CompleteOnboardingUseCase;
 import co.com.atlas.usecase.preregistration.PreRegisterAdminUseCase;
@@ -45,6 +51,10 @@ import co.com.atlas.usecase.visit.VisitRequestUseCase;
 import co.com.atlas.usecase.vehicle.VehicleUseCase;
 import co.com.atlas.usecase.zone.ZoneUseCase;
 import co.com.atlas.usecase.activation.OwnerActivationUseCase;
+import co.com.atlas.usecase.authorization.CreateAuthorizationUseCase;
+import co.com.atlas.usecase.authorization.GetAuthorizationByIdUseCase;
+import co.com.atlas.usecase.authorization.GetAuthorizationsUseCase;
+import co.com.atlas.usecase.authorization.RevokeAuthorizationUseCase;
 import co.com.atlas.usecase.unit.UnitDistributionUseCase;
 import co.com.atlas.usecase.unit.UnitBulkUploadUseCase;
 import co.com.atlas.usecase.organization.OrganizationSettingsUseCase;
@@ -52,7 +62,10 @@ import co.com.atlas.usecase.porter.CreatePorterUseCase;
 import co.com.atlas.usecase.porter.EnrollPorterDeviceUseCase;
 import co.com.atlas.usecase.porter.ListPortersByOrganizationUseCase;
 import co.com.atlas.usecase.porter.RegeneratePorterEnrollmentUrlUseCase;
+import co.com.atlas.usecase.porter.TogglePorterStatusUseCase;
 import co.com.atlas.usecase.porter.ValidateEnrollmentTokenUseCase;
+import co.com.atlas.model.authorization.gateways.FileStorageGateway;
+import co.com.atlas.model.authorization.gateways.VisitorAuthorizationRepository;
 import co.com.atlas.model.crypto.gateways.CryptoKeyGeneratorGateway;
 import co.com.atlas.model.crypto.gateways.CryptoKeyRepository;
 import co.com.atlas.model.organization.gateways.OrganizationConfigurationRepository;
@@ -390,20 +403,29 @@ public class UseCasesConfig {
             AuthUserRepository authUserRepository,
             RoleRepository roleRepository,
             UserRoleMultiRepository userRoleMultiRepository,
-            OrganizationRepository organizationRepository) {
+            OrganizationRepository organizationRepository,
+            UserOrganizationRepository userOrganizationRepository) {
         return new CreatePorterUseCase(
                 porterEnrollmentTokenRepository,
                 porterEnrollmentAuditRepository,
                 authUserRepository,
                 roleRepository,
                 userRoleMultiRepository,
-                organizationRepository);
+                organizationRepository,
+                userOrganizationRepository);
     }
 
     @Bean
     public ListPortersByOrganizationUseCase listPortersByOrganizationUseCase(
             PorterRepository porterRepository) {
         return new ListPortersByOrganizationUseCase(porterRepository);
+    }
+
+    @Bean
+    public TogglePorterStatusUseCase togglePorterStatusUseCase(
+            PorterRepository porterRepository,
+            AuthUserRepository authUserRepository) {
+        return new TogglePorterStatusUseCase(porterRepository, authUserRepository);
     }
 
     @Bean
@@ -435,13 +457,99 @@ public class UseCasesConfig {
             AuthUserRepository authUserRepository,
             OrganizationRepository organizationRepository,
             CryptoKeyRepository cryptoKeyRepository,
-            CryptoKeyGeneratorGateway cryptoKeyGeneratorGateway) {
+            CryptoKeyGeneratorGateway cryptoKeyGeneratorGateway,
+            JwtTokenGateway jwtTokenGateway,
+            UserRoleMultiRepository userRoleMultiRepository,
+            RoleRepository roleRepository,
+            PermissionRepository permissionRepository,
+            UserOrganizationRepository userOrganizationRepository) {
         return new EnrollPorterDeviceUseCase(
                 porterEnrollmentTokenRepository,
                 porterEnrollmentAuditRepository,
                 authUserRepository,
                 organizationRepository,
                 cryptoKeyRepository,
-                cryptoKeyGeneratorGateway);
+                cryptoKeyGeneratorGateway,
+                jwtTokenGateway,
+                userRoleMultiRepository,
+                roleRepository,
+                permissionRepository,
+                userOrganizationRepository);
+    }
+
+    // Authorization Use Cases
+    @Bean
+    public CreateAuthorizationUseCase createAuthorizationUseCase(
+            VisitorAuthorizationRepository authorizationRepository,
+            FileStorageGateway fileStorageGateway,
+            CryptoKeyRepository cryptoKeyRepository,
+            CryptoKeyGeneratorGateway cryptoKeyGeneratorGateway,
+            UserUnitRepository userUnitRepository,
+            UnitRepository unitRepository) {
+        return new CreateAuthorizationUseCase(
+                authorizationRepository,
+                fileStorageGateway,
+                cryptoKeyRepository,
+                cryptoKeyGeneratorGateway,
+                userUnitRepository,
+                unitRepository);
+    }
+
+    @Bean
+    public GetAuthorizationsUseCase getAuthorizationsUseCase(
+            VisitorAuthorizationRepository authorizationRepository,
+            UserUnitRepository userUnitRepository) {
+        return new GetAuthorizationsUseCase(authorizationRepository, userUnitRepository);
+    }
+
+    @Bean
+    public GetAuthorizationByIdUseCase getAuthorizationByIdUseCase(
+            VisitorAuthorizationRepository authorizationRepository) {
+        return new GetAuthorizationByIdUseCase(authorizationRepository);
+    }
+
+    @Bean
+    public RevokeAuthorizationUseCase revokeAuthorizationUseCase(
+            VisitorAuthorizationRepository authorizationRepository) {
+        return new RevokeAuthorizationUseCase(authorizationRepository);
+    }
+
+    // Access Porter Use Cases (HU #7)
+    @Bean
+    public ValidateAuthorizationUseCase validateAuthorizationUseCase(
+            CryptoKeyRepository cryptoKeyRepository,
+            VisitorAuthorizationRepository visitorAuthorizationRepository,
+            AccessEventRepository accessEventRepository) {
+        return new ValidateAuthorizationUseCase(
+                cryptoKeyRepository,
+                visitorAuthorizationRepository,
+                accessEventRepository);
+    }
+
+    @Bean
+    public ValidateByDocumentUseCase validateByDocumentUseCase(
+            VisitorAuthorizationRepository visitorAuthorizationRepository,
+            AccessEventRepository accessEventRepository) {
+        return new ValidateByDocumentUseCase(
+                visitorAuthorizationRepository,
+                accessEventRepository);
+    }
+
+    @Bean
+    public SyncAccessEventsUseCase syncAccessEventsUseCase(
+            AccessEventRepository accessEventRepository) {
+        return new SyncAccessEventsUseCase(accessEventRepository);
+    }
+
+    @Bean
+    public GetRevocationListUseCase getRevocationListUseCase(
+            VisitorAuthorizationRepository visitorAuthorizationRepository) {
+        return new GetRevocationListUseCase(visitorAuthorizationRepository);
+    }
+
+    @Bean
+    public RegisterVehicleExitUseCase registerVehicleExitUseCase(
+            AccessEventRepository accessEventRepository) {
+        return new RegisterVehicleExitUseCase(accessEventRepository);
     }
 }

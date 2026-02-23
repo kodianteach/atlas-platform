@@ -33,4 +33,19 @@ public class EnrollDeviceResponse {
 
     @Schema(description = "Máximo desfase de reloj permitido en minutos", example = "5")
     private Integer maxClockSkewMinutes;
+
+    @Schema(description = "JWT access token para sesión automática del portero")
+    private String accessToken;
+
+    @Schema(description = "JWT refresh token")
+    private String refreshToken;
+
+    @Schema(description = "Ruta por defecto del portero", example = "/doorman/entry-control")
+    private String defaultRoute;
+
+    @Schema(description = "Username generado para futuros inicios de sesión", example = "portero.alberto.santa-helena")
+    private String porterUsername;
+
+    @Schema(description = "Contraseña generada (solo se muestra una vez)", example = "xK7mBn3pQw")
+    private String porterPassword;
 }

@@ -276,9 +276,9 @@ public class JwtTokenAdapter implements JwtTokenGateway {
             return "/profile";
         }
         
-        // Extraer nombres de roles
+        // Extraer códigos de roles (code es el identificador canónico, ej: PORTERO_GENERAL)
         List<String> roleNames = roles.stream()
-                .map(Role::getName)
+                .map(Role::getCode)
                 .collect(Collectors.toList());
         
         // SUPER_ADMIN siempre va al dashboard principal

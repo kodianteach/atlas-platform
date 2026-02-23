@@ -17,6 +17,16 @@ public interface AuthUserRepository {
     Mono<AuthUser> findByEmail(String email);
     
     /**
+     * Busca un usuario por su username.
+     */
+    Mono<AuthUser> findByUsername(String username);
+    
+    /**
+     * Busca un usuario por email o username (para login flexible).
+     */
+    Mono<AuthUser> findByEmailOrUsername(String identifier);
+    
+    /**
      * Busca un usuario por su ID.
      */
     Mono<AuthUser> findById(Long id);

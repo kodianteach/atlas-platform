@@ -36,6 +36,18 @@ public class AuthUserRepositoryAdapter implements AuthUserRepository {
     }
 
     @Override
+    public Mono<AuthUser> findByUsername(String username) {
+        return repository.findByUsernameAndDeletedAtIsNull(username)
+                .flatMap(this::enrichWithRolesAndPermissions);
+    }
+
+    @Override
+    public Mono<AuthUser> findByEmailOrUsername(String identifier) {
+        return findByEmail(identifier)
+                .switchIfEmpty(Mono.defer(() -> findByUsername(identifier)));
+    }
+
+    @Override
     public Mono<AuthUser> findById(Long id) {
         return repository.findById(id)
                 .filter(user -> user.getDeletedAt() == null)
@@ -158,6 +170,7 @@ public class AuthUserRepositoryAdapter implements AuthUserRepository {
         return AuthUser.builder()
                 .id(entity.getId())
                 .email(entity.getEmail())
+                .username(entity.getUsername())
                 .names(entity.getNames())
                 .passwordHash(entity.getPasswordHash())
                 .phone(entity.getPhone())
@@ -175,6 +188,7 @@ public class AuthUserRepositoryAdapter implements AuthUserRepository {
         return AuthUserEntity.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .username(user.getUsername())
                 .names(user.getNames())
                 .passwordHash(user.getPasswordHash())
                 .phone(user.getPhone())

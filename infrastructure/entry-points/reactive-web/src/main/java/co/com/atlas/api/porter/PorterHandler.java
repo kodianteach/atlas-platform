@@ -11,6 +11,7 @@ import co.com.atlas.tenant.TenantContext;
 import co.com.atlas.usecase.porter.CreatePorterUseCase;
 import co.com.atlas.usecase.porter.ListPortersByOrganizationUseCase;
 import co.com.atlas.usecase.porter.RegeneratePorterEnrollmentUrlUseCase;
+import co.com.atlas.usecase.porter.TogglePorterStatusUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ public class PorterHandler {
     private final CreatePorterUseCase createPorterUseCase;
     private final ListPortersByOrganizationUseCase listPortersByOrganizationUseCase;
     private final RegeneratePorterEnrollmentUrlUseCase regeneratePorterEnrollmentUrlUseCase;
+    private final TogglePorterStatusUseCase togglePorterStatusUseCase;
 
     /**
      * Crea un nuevo portero.
@@ -143,6 +145,49 @@ public class PorterHandler {
                             .success(true)
                             .status(HttpStatus.OK.value())
                             .message("URL de enrolamiento regenerada exitosamente")
+                            .data(data)
+                            .build();
+
+                    return ServerResponse.ok()
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(response);
+                });
+        }).onErrorResume(this::handleError);
+    }
+
+    /**
+     * Activa o inactiva un portero.
+     *
+     * PUT /api/porters/{id}/toggle-status
+     */
+    public Mono<ServerResponse> togglePorterStatus(ServerRequest request) {
+        Long porterId;
+        try {
+            porterId = Long.parseLong(request.pathVariable("id"));
+        } catch (NumberFormatException e) {
+            ApiResponse<Void> error = ApiResponse.error(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "ID de portero inválido"
+            );
+            return ServerResponse.badRequest()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(error);
+        }
+
+        return Mono.defer(() -> {
+            Long organizationId = TenantContext.getOrganizationIdOrThrow();
+
+            return togglePorterStatusUseCase.execute(porterId, organizationId)
+                .flatMap(result -> {
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("porterId", result.porterId());
+                    data.put("active", result.active());
+                    data.put("status", result.status());
+
+                    ApiResponse<Map<String, Object>> response = ApiResponse.<Map<String, Object>>builder()
+                            .success(true)
+                            .status(HttpStatus.OK.value())
+                            .message(result.active() ? "Portero activado exitosamente" : "Portero inactivado exitosamente")
                             .data(data)
                             .build();
 

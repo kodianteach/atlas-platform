@@ -123,6 +123,11 @@ public class ExternalPorterHandler {
                             .verificationKeyJwk(result.verificationKeyJwk())
                             .keyId(result.keyId())
                             .maxClockSkewMinutes(result.maxClockSkewMinutes())
+                            .accessToken(result.accessToken())
+                            .refreshToken(result.refreshToken())
+                            .defaultRoute(result.defaultRoute())
+                            .porterUsername(result.porterUsername())
+                            .porterPassword(result.porterPassword())
                             .build();
 
                     ApiResponse<EnrollDeviceResponse> response = ApiResponse.<EnrollDeviceResponse>builder()
