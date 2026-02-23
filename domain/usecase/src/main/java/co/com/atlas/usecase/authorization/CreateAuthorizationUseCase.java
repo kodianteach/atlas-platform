@@ -128,9 +128,19 @@ public class CreateAuthorizationUseCase {
     }
 
     private Mono<VisitorAuthorization> signAndPersist(VisitorAuthorization authorization, String unitCode) {
-        return getOrCreateCryptoKey(authorization.getOrganizationId())
-                .flatMap(cryptoKey -> buildSignedQr(authorization, unitCode, cryptoKey))
-                .flatMap(authorizationRepository::save);
+        // 1. Save with placeholder to get the DB-assigned ID (signed_qr is NOT NULL)
+        VisitorAuthorization withPlaceholder = authorization.toBuilder()
+                .signedQr("PENDING")
+                .build();
+
+        return authorizationRepository.save(withPlaceholder)
+                .flatMap(saved ->
+                    // 2. Build signed QR with the real ID
+                    getOrCreateCryptoKey(saved.getOrganizationId())
+                        .flatMap(cryptoKey -> buildSignedQr(saved, unitCode, cryptoKey))
+                        // 3. Update with the actual signed QR
+                        .flatMap(authorizationRepository::save)
+                );
     }
 
     /**
@@ -177,24 +187,34 @@ public class CreateAuthorizationUseCase {
                 });
     }
 
+    /**
+     * Serializa el payload con claves compactas para reducir la densidad del QR.
+     * Mapeo de claves:
+     *   a=authId, o=orgId, u=unitCode, n=personName, d=personDoc,
+     *   s=serviceType, f=validFrom(epoch), t=validTo(epoch),
+     *   p=vehiclePlate, c=vehicleColor, y=vehicleType, k=kid
+     */
     private String serializePayload(QrPayload payload) {
         StringBuilder sb = new StringBuilder();
         sb.append("{");
-        sb.append("\"authId\":").append(payload.getAuthId()).append(",");
-        sb.append("\"orgId\":").append(payload.getOrgId()).append(",");
-        appendString(sb, "unitCode", payload.getUnitCode());
-        appendString(sb, "personName", payload.getPersonName());
-        appendString(sb, "personDoc", payload.getPersonDoc());
-        appendString(sb, "serviceType", payload.getServiceType());
-        appendString(sb, "validFrom", payload.getValidFrom() != null ? payload.getValidFrom().toString() : null);
-        appendString(sb, "validTo", payload.getValidTo() != null ? payload.getValidTo().toString() : null);
-        if (payload.getVehiclePlate() != null) {
-            appendString(sb, "vehiclePlate", payload.getVehiclePlate());
-            appendString(sb, "vehicleType", payload.getVehicleType());
-            appendString(sb, "vehicleColor", payload.getVehicleColor());
+        sb.append("\"a\":").append(payload.getAuthId()).append(",");
+        sb.append("\"o\":").append(payload.getOrgId()).append(",");
+        appendString(sb, "u", payload.getUnitCode());
+        appendString(sb, "n", payload.getPersonName());
+        appendString(sb, "d", payload.getPersonDoc());
+        appendString(sb, "s", payload.getServiceType());
+        if (payload.getValidFrom() != null) {
+            sb.append("\"f\":").append(payload.getValidFrom().getEpochSecond()).append(",");
         }
-        appendString(sb, "issuedAt", payload.getIssuedAt() != null ? payload.getIssuedAt().toString() : null);
-        appendString(sb, "kid", payload.getKid());
+        if (payload.getValidTo() != null) {
+            sb.append("\"t\":").append(payload.getValidTo().getEpochSecond()).append(",");
+        }
+        if (payload.getVehiclePlate() != null) {
+            appendString(sb, "p", payload.getVehiclePlate());
+            appendString(sb, "c", payload.getVehicleColor());
+            appendString(sb, "y", payload.getVehicleType());
+        }
+        appendString(sb, "k", payload.getKid());
         // Remove trailing comma
         if (sb.charAt(sb.length() - 1) == ',') {
             sb.setLength(sb.length() - 1);

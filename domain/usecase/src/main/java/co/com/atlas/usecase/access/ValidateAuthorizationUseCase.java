@@ -5,7 +5,6 @@ import co.com.atlas.model.access.AccessEvent;
 import co.com.atlas.model.access.ScanResult;
 import co.com.atlas.model.access.gateways.AccessEventRepository;
 import co.com.atlas.model.authorization.AuthorizationStatus;
-import co.com.atlas.model.authorization.VisitorAuthorization;
 import co.com.atlas.model.authorization.gateways.VisitorAuthorizationRepository;
 import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.crypto.OrganizationCryptoKey;
@@ -52,12 +51,13 @@ public class ValidateAuthorizationUseCase {
                     String signatureBase64 = parts[1];
                     String payloadJson = new String(Base64.getUrlDecoder().decode(payloadBase64), StandardCharsets.UTF_8);
 
-                    Long authId = extractAuthId(payloadJson);
-                    String personName = extractField(payloadJson, "personName");
-                    String personDocument = extractField(payloadJson, "personDoc");
-                    String validFrom = extractField(payloadJson, "validFrom");
-                    String validTo = extractField(payloadJson, "validTo");
-                    String vehiclePlate = extractField(payloadJson, "vehiclePlate");
+                    // Support compact keys (a,n,d,f,t,p) and legacy keys (authId,personName,...)
+                    Long authId = extractAuthIdCompat(payloadJson);
+                    String personName = extractFieldCompat(payloadJson, "n", "personName");
+                    String personDocument = extractFieldCompat(payloadJson, "d", "personDoc");
+                    String validFrom = extractDateFieldCompat(payloadJson, "f", "validFrom");
+                    String validTo = extractDateFieldCompat(payloadJson, "t", "validTo");
+                    String vehiclePlate = extractFieldCompat(payloadJson, "p", "vehiclePlate");
 
                     return cryptoKeyRepository.findActiveByOrganizationId(organizationId)
                             .switchIfEmpty(Mono.error(new BusinessException(
@@ -161,46 +161,89 @@ public class ValidateAuthorizationUseCase {
         return accessEventRepository.save(event);
     }
 
-    private Long extractAuthId(String json) {
-        String value = extractField(json, "authId");
+    private Long extractAuthIdCompat(String json) {
+        // Try compact key "a" first, then legacy "authId"
+        String value = extractField(json, "a");
+        if (value == null) {
+            value = extractField(json, "authId");
+        }
         if (value == null) {
             throw new BusinessException("QR no contiene authId", "QR_MISSING_AUTH_ID");
         }
         return Long.parseLong(value);
     }
 
+    private String extractFieldCompat(String json, String compactKey, String legacyKey) {
+        String value = extractField(json, compactKey);
+        return value != null ? value : extractField(json, legacyKey);
+    }
+
+    /**
+     * Extracts a date field supporting both compact (epoch seconds number) and legacy (ISO string).
+     */
+    private String extractDateFieldCompat(String json, String compactKey, String legacyKey) {
+        String value = extractField(json, compactKey);
+        if (value != null) {
+            // Compact format: epoch seconds → convert to ISO string
+            long epochSeconds = Long.parseLong(value);
+            return Instant.ofEpochSecond(epochSeconds).toString();
+        }
+        return extractField(json, legacyKey);
+    }
+
     private String extractField(String json, String fieldName) {
-        String search = "\"" + fieldName + "\"";
-        int idx = json.indexOf(search);
+        return findFieldValue(json, "\"" + fieldName + "\":");
+    }
+
+    private String findFieldValue(String json, String searchKey) {
+        int idx = findKeyIndex(json, searchKey);
         if (idx < 0) {
             return null;
         }
-        int colonIdx = json.indexOf(':', idx + search.length());
-        if (colonIdx < 0) {
-            return null;
-        }
-        int start = colonIdx + 1;
-        while (start < json.length() && (json.charAt(start) == ' ' || json.charAt(start) == '"')) {
-            start++;
-        }
+
+        int start = idx + searchKey.length();
+        start = skipWhitespace(json, start);
         if (start >= json.length()) {
             return null;
         }
-        // Check if it's a number (no quotes)
-        char prevChar = json.charAt(start - 1);
-        if (prevChar != '"') {
-            // Numeric value
-            int end = start;
-            while (end < json.length() && json.charAt(end) != ',' && json.charAt(end) != '}' && json.charAt(end) != ' ') {
-                end++;
-            }
-            return json.substring(start, end).trim();
+
+        if (json.charAt(start) == '"') {
+            return extractStringValue(json, start + 1);
         }
-        // String value (already past opening quote)
-        int end = json.indexOf('"', start);
-        if (end < 0) {
+        if (json.startsWith("null", start)) {
             return null;
         }
-        return json.substring(start, end);
+        return extractNumericValue(json, start);
+    }
+
+    private int findKeyIndex(String json, String searchKey) {
+        int idx = json.indexOf(searchKey);
+        // Ensure this key is at top-level (preceded by { , or whitespace, not inside a string)
+        while (idx > 0 && json.charAt(idx - 1) != '{' && json.charAt(idx - 1) != ','
+                && json.charAt(idx - 1) != ' ' && json.charAt(idx - 1) != '\n') {
+            idx = json.indexOf(searchKey, idx + searchKey.length());
+        }
+        return idx;
+    }
+
+    private int skipWhitespace(String json, int start) {
+        int pos = start;
+        while (pos < json.length() && json.charAt(pos) == ' ') {
+            pos++;
+        }
+        return pos;
+    }
+
+    private String extractStringValue(String json, int start) {
+        int end = json.indexOf('"', start);
+        return end < 0 ? null : json.substring(start, end);
+    }
+
+    private String extractNumericValue(String json, int start) {
+        int end = start;
+        while (end < json.length() && json.charAt(end) != ',' && json.charAt(end) != '}') {
+            end++;
+        }
+        return json.substring(start, end).trim();
     }
 }

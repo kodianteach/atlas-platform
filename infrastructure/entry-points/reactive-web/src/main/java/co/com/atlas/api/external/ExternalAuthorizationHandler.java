@@ -86,7 +86,7 @@ public class ExternalAuthorizationHandler {
                         return Mono.error(new BusinessException(
                                 "La autorización no tiene QR generado", "NO_QR_AVAILABLE"));
                     }
-                    return qrImageGeneratorGateway.generateQrImage(authorization.getSignedQr(), 300, 300);
+                    return qrImageGeneratorGateway.generateQrImage(authorization.getSignedQr(), 600, 600);
                 })
                 .flatMap(qrBytes -> ServerResponse.ok()
                         .contentType(IMAGE_PNG)

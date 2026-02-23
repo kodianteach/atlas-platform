@@ -27,8 +27,8 @@ public class ZxingQrImageGeneratorAdapter implements QrImageGeneratorGateway {
     public Mono<byte[]> generateQrImage(String content, int width, int height) {
         return Mono.fromCallable(() -> {
             Map<EncodeHintType, Object> hints = Map.of(
-                    EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M,
-                    EncodeHintType.MARGIN, 2,
+                    EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L,
+                    EncodeHintType.MARGIN, 1,
                     EncodeHintType.CHARACTER_SET, "UTF-8"
             );
 

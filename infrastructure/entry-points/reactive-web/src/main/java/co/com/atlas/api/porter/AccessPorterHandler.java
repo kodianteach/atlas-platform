@@ -129,7 +129,15 @@ public class AccessPorterHandler {
      * POST /api/porter/access-events/sync
      */
     public Mono<ServerResponse> syncEvents(ServerRequest request) {
-        return Mono.defer(() -> request.bodyToFlux(AccessEvent.class)
+        return Mono.defer(() -> {
+            Long organizationId = TenantContext.getOrganizationIdOrThrow();
+            Long porterUserId = TenantContext.getUserIdOrThrow();
+
+            return request.bodyToFlux(AccessEvent.class)
+                .map(event -> event.toBuilder()
+                        .organizationId(organizationId)
+                        .porterUserId(porterUserId)
+                        .build())
                 .collectList()
                 .flatMap(events -> syncAccessEventsUseCase.execute(events)
                         .collectList()
@@ -147,8 +155,8 @@ public class AccessPorterHandler {
                             return ServerResponse.ok()
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .bodyValue(response);
-                        }))
-        ).onErrorResume(this::handleError);
+                        }));
+        }).onErrorResume(this::handleError);
     }
 
     /**
