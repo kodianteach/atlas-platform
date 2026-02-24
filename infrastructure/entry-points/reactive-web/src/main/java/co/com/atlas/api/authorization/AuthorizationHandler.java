@@ -5,6 +5,8 @@ import co.com.atlas.api.common.dto.ApiResponse;
 import co.com.atlas.model.authorization.AuthorizationStatus;
 import co.com.atlas.model.authorization.ServiceType;
 import co.com.atlas.model.authorization.VisitorAuthorization;
+import co.com.atlas.model.authorization.gateways.FileStorageGateway;
+import co.com.atlas.model.access.gateways.AccessEventRepository;
 import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.common.NotFoundException;
 import co.com.atlas.tenant.TenantContext;
@@ -24,6 +26,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
@@ -48,6 +51,8 @@ public class AuthorizationHandler {
     private final GetAuthorizationsUseCase getAuthorizationsUseCase;
     private final GetAuthorizationByIdUseCase getAuthorizationByIdUseCase;
     private final RevokeAuthorizationUseCase revokeAuthorizationUseCase;
+    private final FileStorageGateway fileStorageGateway;
+    private final AccessEventRepository accessEventRepository;
 
     /**
      * Crea una nueva autorización de visitante con documento de identidad.
@@ -168,6 +173,59 @@ public class AuthorizationHandler {
                 .flatMap(revoked ->
                         buildSuccessResponse(revoked, "Autorización revocada exitosamente"))
                 .onErrorResume(NotFoundException.class, e -> buildNotFoundResponse(e, request))
+                .onErrorResume(BusinessException.class, e -> buildErrorResponse(e, request));
+    }
+
+    /**
+     * Descarga el documento de identidad adjunto a una autorización.
+     *
+     * @param request ServerRequest con path variable "id"
+     * @return ServerResponse con el PDF como application/pdf
+     */
+    public Mono<ServerResponse> downloadDocument(ServerRequest request) {
+        Long authorizationId = Long.parseLong(request.pathVariable("id"));
+        Long userId = TenantContext.getUserIdOrThrow();
+        Long organizationId = TenantContext.getOrganizationIdOrThrow();
+        List<String> roles = TenantContext.getRoles();
+
+        return getAuthorizationByIdUseCase.execute(authorizationId, userId, organizationId, roles)
+                .flatMap(authorization -> {
+                    String documentKey = authorization.getIdentityDocumentKey();
+                    if (documentKey == null || documentKey.isEmpty()) {
+                        return Mono.error(new NotFoundException("No hay documento adjunto a esta autorización"));
+                    }
+                    return fileStorageGateway.retrieve(documentKey);
+                })
+                .flatMap(pdfBytes ->
+                        ServerResponse.ok()
+                                .contentType(MediaType.APPLICATION_PDF)
+                                .header("Content-Disposition", "inline; filename=\"documento-identidad.pdf\"")
+                                .bodyValue(pdfBytes))
+                .onErrorResume(IOException.class, e -> {
+                    log.warn("Documento no encontrado en storage: {}", e.getMessage());
+                    return buildNotFoundResponse(
+                            new NotFoundException("El documento de identidad no está disponible. Puede haber sido eliminado del almacenamiento."),
+                            request);
+                })
+                .onErrorResume(NotFoundException.class, e -> buildNotFoundResponse(e, request))
+                .onErrorResume(BusinessException.class, e -> buildErrorResponse(e, request));
+    }
+
+    /**
+     * Lista los eventos de acceso (validaciones) para una autorización.
+     *
+     * @param request ServerRequest con path variable "id"
+     * @return ServerResponse con listado de AccessEvent
+     */
+    public Mono<ServerResponse> getAccessEvents(ServerRequest request) {
+        Long authorizationId = Long.parseLong(request.pathVariable("id"));
+        TenantContext.getUserIdOrThrow();
+        TenantContext.getOrganizationIdOrThrow();
+
+        return accessEventRepository.findByAuthorizationId(authorizationId)
+                .collectList()
+                .flatMap(events ->
+                        buildSuccessResponse(events, "Eventos de acceso consultados exitosamente"))
                 .onErrorResume(BusinessException.class, e -> buildErrorResponse(e, request));
     }
 

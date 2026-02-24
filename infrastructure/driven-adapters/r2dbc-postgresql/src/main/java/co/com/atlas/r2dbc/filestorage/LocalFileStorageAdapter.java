@@ -25,7 +25,7 @@ public class LocalFileStorageAdapter implements FileStorageGateway {
     private final String basePath;
 
     public LocalFileStorageAdapter(
-            @Value("${atlas.storage.base-path:/var/atlas/uploads}") String basePath) {
+            @Value("${atlas.storage.base-path:/tmp/atlas/uploads}") String basePath) {
         this.basePath = basePath;
     }
 

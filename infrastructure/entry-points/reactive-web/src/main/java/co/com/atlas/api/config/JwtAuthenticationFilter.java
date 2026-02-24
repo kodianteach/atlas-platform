@@ -147,7 +147,7 @@ public class JwtAuthenticationFilter implements WebFilter {
     }
 
     /**
-     * Extrae userId y organizationId del JWT y los establece en TenantContext.
+     * Extrae userId, organizationId y roles del JWT y los establece en TenantContext.
      * Se ejecuta en el mismo hilo donde correrá el handler (post-validación async).
      */
     private void setTenantContext(String token) {
@@ -165,14 +165,26 @@ public class JwtAuthenticationFilter implements WebFilter {
             }
 
             Object orgIdClaim = claims.get("organizationId");
-            if (orgIdClaim instanceof Integer) {
-                TenantContext.setOrganizationId(((Integer) orgIdClaim).longValue());
-            } else if (orgIdClaim instanceof Long) {
-                TenantContext.setOrganizationId((Long) orgIdClaim);
+            if (orgIdClaim instanceof Integer integer) {
+                TenantContext.setOrganizationId(integer.longValue());
+            } else if (orgIdClaim instanceof Long longVal) {
+                TenantContext.setOrganizationId(longVal);
             }
 
-            log.debug("JWT Filter - TenantContext set: userId={}, organizationId={}",
-                    TenantContext.getUserId(), TenantContext.getOrganizationId());
+            // Extract roles from JWT and set in TenantContext
+            Object rolesClaim = claims.get("roles");
+            if (rolesClaim instanceof List<?> roleList) {
+                List<String> roles = roleList.stream()
+                        .filter(String.class::isInstance)
+                        .map(String.class::cast)
+                        .toList();
+                TenantContext.setRoles(roles);
+            } else {
+                TenantContext.setRoles(List.of());
+            }
+
+            log.debug("JWT Filter - TenantContext set: userId={}, organizationId={}, roles={}",
+                    TenantContext.getUserId(), TenantContext.getOrganizationId(), TenantContext.getRoles());
         } catch (Exception e) {
             log.warn("JWT Filter - Failed to set TenantContext: {}", e.getMessage());
         }

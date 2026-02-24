@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "gradle-compileJava",
+      "type": "shell",
+      "command": "${workspaceFolder}/atlas/gradlew.bat",
+      "args": [
+        "compileJava",
+        "--no-daemon"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/atlas"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "problemMatcher": ["$javac"]
+    }
+  ]
+}

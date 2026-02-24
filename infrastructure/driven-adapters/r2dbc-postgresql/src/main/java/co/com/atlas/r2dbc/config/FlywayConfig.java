@@ -21,7 +21,7 @@ import java.util.List;
  * Se activa/desactiva con spring.flyway.enabled (default: true).
  */
 @Configuration
-@ConditionalOnProperty(name = "spring.flyway.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "spring.flyway.enabled", havingValue = "true", matchIfMissing = false)
 public class FlywayConfig {
 
     @Value("${spring.flyway.url}")

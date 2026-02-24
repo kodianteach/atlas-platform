@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Atlas - MainApplication",
+      "request": "launch",
+      "mainClass": "co.com.atlas.MainApplication",
+      "projectName": "app-service",
+      "preLaunchTask": "gradle-compileJava",
+      "vmArgs": "-Dspring.profiles.active=local",
+      "env": {}
+    },
+    {
+      "type": "java",
+      "name": "Atlas - MainApplication (sin compile)",
+      "request": "launch",
+      "mainClass": "co.com.atlas.MainApplication",
+      "projectName": "app-service",
+      "vmArgs": "-Dspring.profiles.active=local",
+      "env": {}
+    }
+  ]
+}
