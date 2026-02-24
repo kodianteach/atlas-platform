@@ -5,11 +5,13 @@ pluginManagement {
     }
 }
 
-buildCache {
-    local {
-        directory = new File(rootDir, 'build-cache')
-    }
-}
+// Build cache deshabilitado - causaba que IntelliJ sirviera clases viejas
+// y no tomara los cambios nuevos al dar Play
+// buildCache {
+//     local {
+//         directory = new File(rootDir, 'build-cache')
+//     }
+// }
 
 rootProject.name = 'AtlasPlatform'
 

@@ -75,11 +75,27 @@ public class AuthorizationRouterRest {
                     beanClass = AuthorizationHandler.class,
                     beanMethod = "revoke",
                     produces = "application/json"
+            ),
+            @RouterOperation(
+                    path = "/api/authorizations/{id}/document",
+                    method = RequestMethod.GET,
+                    beanClass = AuthorizationHandler.class,
+                    beanMethod = "downloadDocument",
+                    produces = "application/pdf"
+            ),
+            @RouterOperation(
+                    path = "/api/authorizations/{id}/access-events",
+                    method = RequestMethod.GET,
+                    beanClass = AuthorizationHandler.class,
+                    beanMethod = "getAccessEvents",
+                    produces = "application/json"
             )
     })
     public RouterFunction<ServerResponse> authorizationRouterFunction() {
         return route(POST("/api/authorizations").and(contentType(MULTIPART_FORM_DATA)), handler::create)
                 .andRoute(PUT("/api/authorizations/{id}/revoke"), handler::revoke)
+                .andRoute(GET("/api/authorizations/{id}/document"), handler::downloadDocument)
+                .andRoute(GET("/api/authorizations/{id}/access-events"), handler::getAccessEvents)
                 .andRoute(GET("/api/authorizations/{id}"), handler::getById)
                 .andRoute(GET("/api/authorizations"), handler::getAll);
     }
