@@ -5,10 +5,10 @@
 
 -- Tabla principal de autorizaciones de visitantes
 CREATE TABLE visitor_authorizations (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    organization_id BIGINT NOT NULL,
-    unit_id BIGINT NOT NULL,
-    created_by_user_id BIGINT NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    organization_id INT NOT NULL,
+    unit_id INT NOT NULL,
+    created_by_user_id INT NOT NULL,
     person_name VARCHAR(200) NOT NULL,
     person_document VARCHAR(50) NOT NULL,
     service_type VARCHAR(20) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE visitor_authorizations (
     signed_qr TEXT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     revoked_at TIMESTAMP NULL,
-    revoked_by BIGINT NULL,
+    revoked_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (organization_id) REFERENCES organization(id),

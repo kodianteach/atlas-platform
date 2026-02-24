@@ -31,7 +31,7 @@ public class LoginUseCase {
     private final PermissionRepository permissionRepository;
 
     public Mono<AuthToken> execute(AuthCredentials credentials) {
-        return authUserRepository.findByEmail(credentials.getEmail())
+        return authUserRepository.findByEmailOrUsername(credentials.getEmail())
                 .switchIfEmpty(Mono.error(new AuthenticationException("Usuario no encontrado")))
                 .flatMap(user -> validateUserAndPassword(user, credentials.getPassword()))
                 .flatMap(this::loadUserRoles)
@@ -55,16 +55,26 @@ public class LoginUseCase {
     /**
      * Carga los roles del usuario desde user_roles_multi.
      * Usa la última organización seleccionada o la primera organización activa.
-     * Si no tiene organizaciones, busca roles con organization_id = NULL
+     * Si no tiene organizaciones en user_organizations, busca en user_roles_multi
+     * directamente para encontrar la organización (caso porteros sin membresía).
+     * Si aún no encuentra, busca roles con organization_id = NULL
      * (asignados durante pre-registro, antes del onboarding).
      */
     private Mono<AuthUser> loadUserRoles(AuthUser user) {
-        // Obtener la organización a usar (lastOrganizationId o primera activa)
+        // Paso 1: lastOrganizationId
         Mono<Long> organizationIdMono = user.getLastOrganizationId() != null
                 ? Mono.just(user.getLastOrganizationId())
+                // Paso 2: user_organizations
                 : userOrganizationRepository.findActiveByUserId(user.getId())
                         .next()
                         .map(uo -> uo.getOrganizationId())
+                        // Paso 3: fallback a user_roles_multi (porteros sin membresía)
+                        .switchIfEmpty(Mono.defer(() -> 
+                                userRoleMultiRepository.findByUserId(user.getId())
+                                        .filter(urm -> urm.getOrganizationId() != null)
+                                        .next()
+                                        .map(urm -> urm.getOrganizationId())
+                        ))
                         .defaultIfEmpty(0L);
         
         return organizationIdMono.flatMap(orgId -> {
@@ -90,6 +100,7 @@ public class LoginUseCase {
                                     .organizationId(orgId)
                                     .roles(roles)
                                     .permissions(permissions)
+                                    .enabledModules(List.of("ATLAS_CORE"))
                                     .build()));
         });
     }

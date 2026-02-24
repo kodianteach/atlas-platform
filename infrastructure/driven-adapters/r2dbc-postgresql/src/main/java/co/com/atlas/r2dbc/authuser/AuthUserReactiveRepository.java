@@ -11,6 +11,8 @@ public interface AuthUserReactiveRepository extends ReactiveCrudRepository<AuthU
     
     Mono<AuthUserEntity> findByEmailAndDeletedAtIsNull(String email);
     
+    Mono<AuthUserEntity> findByUsernameAndDeletedAtIsNull(String username);
+    
     @Query("UPDATE users SET last_login_at = NOW() WHERE id = :userId")
     Mono<Void> updateLastLoginAt(Long userId);
     

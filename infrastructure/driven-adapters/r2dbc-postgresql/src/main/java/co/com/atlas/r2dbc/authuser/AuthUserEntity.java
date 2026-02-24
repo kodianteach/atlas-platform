@@ -27,6 +27,8 @@ public class AuthUserEntity {
     
     private String email;
     
+    private String username;
+    
     @Column("password_hash")
     private String passwordHash;
     

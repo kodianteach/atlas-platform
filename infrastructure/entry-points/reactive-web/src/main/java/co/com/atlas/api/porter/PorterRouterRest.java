@@ -23,6 +23,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 import static org.springframework.web.reactive.function.server.RequestPredicates.POST;
+import static org.springframework.web.reactive.function.server.RequestPredicates.PUT;
 import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 
@@ -148,6 +149,7 @@ public class PorterRouterRest {
     public RouterFunction<ServerResponse> porterRoutes(PorterHandler handler) {
         return route(POST("/api/porters").and(accept(MediaType.APPLICATION_JSON)), handler::createPorter)
                 .andRoute(GET("/api/porters"), handler::listPorters)
-                .andRoute(POST("/api/porters/{id}/regenerate-url").and(accept(MediaType.APPLICATION_JSON)), handler::regenerateEnrollmentUrl);
+                .andRoute(POST("/api/porters/{id}/regenerate-url").and(accept(MediaType.APPLICATION_JSON)), handler::regenerateEnrollmentUrl)
+                .andRoute(PUT("/api/porters/{id}/toggle-status"), handler::togglePorterStatus);
     }
 }

@@ -14,11 +14,12 @@ public interface UserUnitReactiveRepository extends ReactiveCrudRepository<UserU
     
     Flux<UserUnitEntity> findByUnitId(Long unitId);
     
-    @Query("SELECT * FROM user_units WHERE user_id = :userId AND status = 'ACTIVE'")
+    @Query("SELECT * FROM user_units WHERE user_id = :userId AND status = 'ACTIVE' AND deleted_at IS NULL")
     Flux<UserUnitEntity> findByUserIdAndStatusActive(Long userId);
     
     Mono<UserUnitEntity> findByUserIdAndUnitId(Long userId, Long unitId);
     
+    @Query("SELECT * FROM user_units WHERE user_id = :userId AND is_primary = 1 AND status = 'ACTIVE' AND deleted_at IS NULL LIMIT 1")
     Mono<UserUnitEntity> findByUserIdAndIsPrimaryTrue(Long userId);
     
     Mono<Boolean> existsByUserIdAndUnitId(Long userId, Long unitId);

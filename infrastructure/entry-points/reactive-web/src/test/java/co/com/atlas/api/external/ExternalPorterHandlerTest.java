@@ -153,7 +153,9 @@ class ExternalPorterHandlerTest {
             var enrollResult = new EnrollmentResult(
                     1L, "Carlos Portería", "Conjunto Atlas",
                     "{\"kty\":\"OKP\",\"crv\":\"Ed25519\",\"x\":\"test\"}",
-                    "key-123", 5
+                    "key-123", 5,
+                    "access-token", "refresh-token", "/doorman/entry-control",
+                    "portero.carlos.atlas", "xK7mBn3pQw"
             );
 
             when(enrollPorterDeviceUseCase.execute(any(EnrollPorterDeviceUseCase.EnrollCommand.class)))
@@ -179,7 +181,9 @@ class ExternalPorterHandlerTest {
         @DisplayName("Should extract client IP from X-Forwarded-For header")
         void shouldExtractClientIpFromXForwardedFor() {
             var enrollResult = new EnrollmentResult(
-                    1L, "Carlos", "Atlas", "{}", "key-1", 5
+                    1L, "Carlos", "Atlas", "{}", "key-1", 5,
+                    "access-token", "refresh-token", "/doorman/entry-control",
+                    "portero.carlos.atlas", "xK7mBn3pQw"
             );
 
             when(enrollPorterDeviceUseCase.execute(any(EnrollPorterDeviceUseCase.EnrollCommand.class)))

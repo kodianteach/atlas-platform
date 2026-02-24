@@ -15,6 +15,8 @@ import co.com.atlas.model.porter.PorterType;
 import co.com.atlas.model.porter.gateways.PorterEnrollmentAuditRepository;
 import co.com.atlas.model.porter.gateways.PorterEnrollmentTokenRepository;
 import co.com.atlas.model.role.gateways.RoleRepository;
+import co.com.atlas.model.userorganization.UserOrganization;
+import co.com.atlas.model.userorganization.gateways.UserOrganizationRepository;
 import co.com.atlas.model.userrolemulti.UserRoleMulti;
 import co.com.atlas.model.userrolemulti.gateways.UserRoleMultiRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,7 @@ public class CreatePorterUseCase {
     private final RoleRepository roleRepository;
     private final UserRoleMultiRepository userRoleMultiRepository;
     private final OrganizationRepository organizationRepository;
+    private final UserOrganizationRepository userOrganizationRepository;
 
     private static final int TOKEN_EXPIRATION_HOURS = 24;
     private static final String INTERNAL_EMAIL_DOMAIN = "atlas.internal";
@@ -78,6 +81,7 @@ public class CreatePorterUseCase {
                                     "Organización no encontrada", "ORGANIZATION_NOT_FOUND")))
                             .flatMap(org -> createPorterUser(org, command)
                                     .flatMap(user -> assignPorterRole(user, command.porterType(), organizationId)
+                                            .then(createUserOrganizationMembership(user.getId(), organizationId))
                                             .then(generateEnrollmentToken(user, org, adminUserId, command)
                                                     .flatMap(tokenAndUrl -> registerAudit(tokenAndUrl.token, adminUserId)
                                                             .thenReturn(new CreatePorterResult(
@@ -105,9 +109,17 @@ public class CreatePorterUseCase {
         String orgSlug = org.getSlug() != null ? org.getSlug() : String.valueOf(org.getId());
         String syntheticEmail = "porter-" + UUID.randomUUID() + "@" + orgSlug + "." + INTERNAL_EMAIL_DOMAIN;
 
+        // Generar username legible: portero.nombre.orgslug (ej: portero.alberto.santa-helena)
+        String baseName = command.displayName().toLowerCase()
+                .replaceAll("[^a-záéíóúñü\\s]", "")
+                .trim()
+                .replaceAll("\\s+", ".");
+        String username = "portero." + baseName + "." + orgSlug;
+
         AuthUser newUser = AuthUser.builder()
                 .names(command.displayName())
                 .email(syntheticEmail)
+                .username(username)
                 .passwordHash(null)
                 .active(false)
                 .status(UserStatus.PRE_REGISTERED)
@@ -131,6 +143,20 @@ public class CreatePorterUseCase {
                     return userRoleMultiRepository.save(userRole);
                 })
                 .then();
+    }
+
+    /**
+     * Crea la membresía del portero en user_organizations y establece lastOrganizationId.
+     */
+    private Mono<Void> createUserOrganizationMembership(Long userId, Long organizationId) {
+        UserOrganization membership = UserOrganization.builder()
+                .userId(userId)
+                .organizationId(organizationId)
+                .status("ACTIVE")
+                .joinedAt(Instant.now())
+                .build();
+        return userOrganizationRepository.save(membership)
+                .then(authUserRepository.updateLastOrganization(userId, organizationId));
     }
 
     private record TokenAndUrl(PorterEnrollmentToken token, String url) {}

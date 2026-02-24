@@ -19,6 +19,7 @@ public class AuthUser {
     private Long id;
     private String names;
     private String email;
+    private String username;
     private String passwordHash;
     private String phone;
     
