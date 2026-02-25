@@ -319,6 +319,7 @@ public class UseCasesConfig {
             AuthUserRepository authUserRepository,
             UserOrganizationRepository userOrganizationRepository,
             UserUnitRepository userUnitRepository,
+            UnitRepository unitRepository,
             UserRoleMultiRepository userRoleMultiRepository,
             NotificationGateway notificationGateway,
             PasswordEncoder passwordEncoder) {
@@ -328,6 +329,7 @@ public class UseCasesConfig {
                 authUserRepository,
                 userOrganizationRepository,
                 userUnitRepository,
+                unitRepository,
                 userRoleMultiRepository,
                 notificationGateway,
                 passwordEncoder::encode);

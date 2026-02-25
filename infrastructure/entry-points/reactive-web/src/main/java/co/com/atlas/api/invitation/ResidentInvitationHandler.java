@@ -97,6 +97,7 @@ public class ResidentInvitationHandler {
                 .flatMap(req -> {
                     ResidentRegistrationData data = ResidentRegistrationData.builder()
                             .names(req.getNames())
+                            .email(req.getEmail())
                             .phone(req.getPhone())
                             .documentType(parseDocumentType(req.getDocumentType()))
                             .documentNumber(req.getDocumentNumber())

@@ -11,6 +11,8 @@ import co.com.atlas.model.invitation.InvitationType;
 import co.com.atlas.model.invitation.gateways.InvitationAuditRepository;
 import co.com.atlas.model.invitation.gateways.InvitationRepository;
 import co.com.atlas.model.notification.gateways.NotificationGateway;
+import co.com.atlas.model.unit.UnitStatus;
+import co.com.atlas.model.unit.gateways.UnitRepository;
 import co.com.atlas.model.userorganization.UserOrganization;
 import co.com.atlas.model.userorganization.gateways.UserOrganizationRepository;
 import co.com.atlas.model.userrolemulti.UserRoleMulti;
@@ -41,6 +43,7 @@ public class OwnerActivationUseCase {
     private final AuthUserRepository authUserRepository;
     private final UserOrganizationRepository userOrganizationRepository;
     private final UserUnitRepository userUnitRepository;
+    private final UnitRepository unitRepository;
     private final UserRoleMultiRepository userRoleMultiRepository;
     private final NotificationGateway notificationGateway;
     private final PasswordEncoder passwordEncoder;
@@ -203,6 +206,7 @@ public class OwnerActivationUseCase {
                     ))
                     .then(assignOwnerRole(savedUser, invitation))
                     .then(updateUserUnitStatus(savedUser.getId(), invitation.getUnitId()))
+                    .then(markUnitAsOccupied(invitation.getUnitId()))
                     .then(updateUserOrganizationStatus(savedUser.getId(), invitation.getOrganizationId()))
                     .then(sendConfirmationEmail(savedUser))
                     .thenReturn(savedUser);
@@ -244,6 +248,20 @@ public class OwnerActivationUseCase {
             return Mono.empty();
         }
         return userUnitRepository.updateStatusByUserIdAndUnitId(userId, unitId, "ACTIVE");
+    }
+
+    /**
+     * Marca la unidad como OCCUPIED cuando se le asigna un usuario.
+     */
+    private Mono<Void> markUnitAsOccupied(Long unitId) {
+        if (unitId == null) return Mono.empty();
+        return unitRepository.findById(unitId)
+                .flatMap(unit -> {
+                    if (unit.getStatus() != UnitStatus.OCCUPIED) {
+                        return unitRepository.save(unit.toBuilder().status(UnitStatus.OCCUPIED).build()).then();
+                    }
+                    return Mono.empty();
+                });
     }
     
     /**
