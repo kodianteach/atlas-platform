@@ -1,13 +1,18 @@
 package co.com.atlas.api.unit;
 
 import co.com.atlas.api.common.dto.ApiResponse;
+import co.com.atlas.api.unit.dto.UnitMemberResponse;
 import co.com.atlas.api.unit.dto.UnitRequest;
 import co.com.atlas.api.unit.dto.UnitResponse;
+import co.com.atlas.model.auth.AuthUser;
+import co.com.atlas.model.auth.gateways.AuthUserRepository;
 import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.common.NotFoundException;
 import co.com.atlas.model.unit.Unit;
 import co.com.atlas.model.unit.UnitStatus;
 import co.com.atlas.model.unit.UnitType;
+import co.com.atlas.model.userunit.UserUnit;
+import co.com.atlas.model.userunit.gateways.UserUnitRepository;
 import co.com.atlas.usecase.unit.UnitUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +23,8 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 /**
  * Handler para operaciones de Unit.
  */
@@ -27,6 +34,8 @@ import reactor.core.publisher.Mono;
 public class UnitHandler {
 
     private final UnitUseCase unitUseCase;
+    private final UserUnitRepository userUnitRepository;
+    private final AuthUserRepository authUserRepository;
 
     public Mono<ServerResponse> create(ServerRequest request) {
         return request.bodyToMono(UnitRequest.class)
@@ -70,13 +79,33 @@ public class UnitHandler {
     public Mono<ServerResponse> getByOrganization(ServerRequest request) {
         Long organizationId = Long.parseLong(request.pathVariable("organizationId"));
         return unitUseCase.findByOrganizationId(organizationId)
-                .map(this::toResponse)
+                .flatMap(unit -> enrichUnitStatus(unit).map(this::toResponse))
                 .collectList()
                 .flatMap(units -> {
                     ApiResponse<Object> response = ApiResponse.success(units, "Unidades obtenidas");
                     return ServerResponse.ok()
                             .contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(response);
+                });
+    }
+
+    /**
+     * Enriquece el estado de una unidad verificando si tiene usuarios activos vinculados.
+     * Si hay al menos un UserUnit activo, el estado se marca como OCCUPIED.
+     */
+    private Mono<Unit> enrichUnitStatus(Unit unit) {
+        return userUnitRepository.findByUnitId(unit.getId())
+                .filter(uu -> "ACTIVE".equals(uu.getStatus()))
+                .hasElements()
+                .map(hasActiveUsers -> {
+                    if (Boolean.TRUE.equals(hasActiveUsers)) {
+                        return unit.toBuilder().status(UnitStatus.OCCUPIED).build();
+                    }
+                    // Si no tiene usuarios y estaba marcada como OCCUPIED en BD, corregir a AVAILABLE
+                    if (unit.getStatus() == UnitStatus.OCCUPIED) {
+                        return unit.toBuilder().status(UnitStatus.AVAILABLE).build();
+                    }
+                    return unit;
                 });
     }
 
@@ -132,6 +161,61 @@ public class UnitHandler {
                             .bodyValue(response);
                 }))
                 .onErrorResume(NotFoundException.class, e -> buildErrorResponse(e, HttpStatus.NOT_FOUND, request.path()));
+    }
+
+    /**
+     * Obtiene los miembros (propietarios y residentes) de una unidad.
+     * GET /api/units/{id}/members
+     */
+    public Mono<ServerResponse> getMembers(ServerRequest request) {
+        Long unitId = Long.parseLong(request.pathVariable("id"));
+        
+        return unitUseCase.findById(unitId)
+                .flatMap(unit -> {
+                    UnitResponse unitResponse = toResponse(unit);
+                    
+                    return userUnitRepository.findByUnitId(unitId)
+                            .flatMap(userUnit -> authUserRepository.findById(userUnit.getUserId())
+                                    .map(user -> toMemberDto(user, userUnit))
+                            )
+                            .collectList()
+                            .map(allMembers -> {
+                                // Separar propietarios y residentes por ownershipType
+                                List<UnitMemberResponse.MemberDto> owners = allMembers.stream()
+                                        .filter(m -> "OWNER".equals(m.getOwnershipType()))
+                                        .toList();
+                                List<UnitMemberResponse.MemberDto> residents = allMembers.stream()
+                                        .filter(m -> !"OWNER".equals(m.getOwnershipType()))
+                                        .toList();
+                                
+                                return UnitMemberResponse.builder()
+                                        .unit(unitResponse)
+                                        .owners(owners)
+                                        .residents(residents)
+                                        .build();
+                            });
+                })
+                .flatMap(memberResponse -> {
+                    ApiResponse<UnitMemberResponse> response = ApiResponse.success(memberResponse, "Miembros de la unidad");
+                    return ServerResponse.ok()
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(response);
+                })
+                .onErrorResume(NotFoundException.class, e -> buildErrorResponse(e, HttpStatus.NOT_FOUND, request.path()));
+    }
+
+    private UnitMemberResponse.MemberDto toMemberDto(AuthUser user, UserUnit userUnit) {
+        return UnitMemberResponse.MemberDto.builder()
+                .userId(user.getId())
+                .names(user.getNames())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .documentType(user.getDocumentType() != null ? user.getDocumentType().name() : null)
+                .documentNumber(user.getDocumentNumber())
+                .ownershipType(userUnit.getOwnershipType() != null ? userUnit.getOwnershipType().name() : null)
+                .status(userUnit.getStatus())
+                .joinedAt(userUnit.getJoinedAt())
+                .build();
     }
 
     private Mono<ServerResponse> buildSuccessResponse(Unit unit) {

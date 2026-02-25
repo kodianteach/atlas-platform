@@ -35,8 +35,43 @@ public class VisitorAuthorizationRepositoryAdapter implements VisitorAuthorizati
 
     @Override
     public Mono<VisitorAuthorization> findById(Long id) {
-        return repository.findById(id)
-                .map(this::toDomain);
+        String sql = """
+            SELECT va.*,
+                   u.code AS unit_code,
+                   usr.names AS created_by_user_name
+            FROM visitor_authorizations va
+            LEFT JOIN unit u ON u.id = va.unit_id
+            LEFT JOIN users usr ON usr.id = va.created_by_user_id
+            WHERE va.id = :id
+            """;
+        return databaseClient.sql(sql)
+                .bind("id", id)
+                .map((row, metadata) -> VisitorAuthorization.builder()
+                        .id(row.get("id", Long.class))
+                        .organizationId(row.get("organization_id", Long.class))
+                        .unitId(row.get("unit_id", Long.class))
+                        .createdByUserId(row.get("created_by_user_id", Long.class))
+                        .personName(row.get("person_name", String.class))
+                        .personDocument(row.get("person_document", String.class))
+                        .serviceType(row.get("service_type", String.class) != null
+                                ? ServiceType.valueOf(row.get("service_type", String.class)) : null)
+                        .validFrom(row.get("valid_from", Instant.class))
+                        .validTo(row.get("valid_to", Instant.class))
+                        .vehiclePlate(row.get("vehicle_plate", String.class))
+                        .vehicleType(row.get("vehicle_type", String.class))
+                        .vehicleColor(row.get("vehicle_color", String.class))
+                        .identityDocumentKey(row.get("identity_document_key", String.class))
+                        .signedQr(row.get("signed_qr", String.class))
+                        .status(row.get("status", String.class) != null
+                                ? AuthorizationStatus.valueOf(row.get("status", String.class)) : null)
+                        .revokedAt(row.get("revoked_at", Instant.class))
+                        .revokedBy(row.get("revoked_by", Long.class))
+                        .createdAt(row.get("created_at", Instant.class))
+                        .updatedAt(row.get("updated_at", Instant.class))
+                        .unitCode(row.get("unit_code", String.class))
+                        .createdByUserName(row.get("created_by_user_name", String.class))
+                        .build())
+                .one();
     }
 
     @Override

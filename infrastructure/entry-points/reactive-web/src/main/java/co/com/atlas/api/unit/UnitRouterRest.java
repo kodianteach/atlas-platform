@@ -135,6 +135,7 @@ public class UnitRouterRest {
     public RouterFunction<ServerResponse> unitRoutes(UnitHandler handler) {
         return route(POST("/api/units").and(accept(MediaType.APPLICATION_JSON)), handler::create)
                 .andRoute(GET("/api/units/{id}"), handler::getById)
+                .andRoute(GET("/api/units/{id}/members"), handler::getMembers)
                 .andRoute(GET("/api/units/organization/{organizationId}"), handler::getByOrganization)
                 .andRoute(GET("/api/units/tower/{towerId}"), handler::getByTower)
                 .andRoute(PUT("/api/units/{id}").and(accept(MediaType.APPLICATION_JSON)), handler::update)

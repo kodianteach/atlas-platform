@@ -12,6 +12,7 @@ import co.com.atlas.model.invitation.gateways.InvitationRepository;
 import co.com.atlas.model.organization.gateways.OrganizationConfigurationRepository;
 import co.com.atlas.model.organization.gateways.OrganizationRepository;
 import co.com.atlas.model.permission.gateways.PermissionRepository;
+import co.com.atlas.model.unit.UnitStatus;
 import co.com.atlas.model.unit.gateways.UnitRepository;
 import co.com.atlas.model.userorganization.UserOrganization;
 import co.com.atlas.model.userorganization.gateways.UserOrganizationRepository;
@@ -67,7 +68,7 @@ public class InvitationUseCase {
     private static final int SELF_REGISTER_EXPIRATION_HOURS = 24;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final String OWNER_ROLE_CODE = "OWNER";
-    private static final String RESIDENT_ROLE_CODE = "RESIDENT";
+    private static final String RESIDENT_ROLE_CODE = "TENANT";
     
     /**
      * Interface funcional para codificación de contraseña.
@@ -469,11 +470,27 @@ public class InvitationUseCase {
                         .joinedAt(Instant.now())
                         .build();
                 
-                return orgMembership.then(userUnitRepository.save(userUnit)).then();
+                return orgMembership
+                        .then(userUnitRepository.save(userUnit))
+                        .then(markUnitAsOccupied(invitation.getUnitId()));
             });
         }
         
         return orgMembership;
+    }
+    
+    /**
+     * Marca una unidad como OCCUPIED cuando se le asigna un usuario.
+     */
+    private Mono<Void> markUnitAsOccupied(Long unitId) {
+        if (unitId == null) return Mono.empty();
+        return unitRepository.findById(unitId)
+                .flatMap(unit -> {
+                    if (unit.getStatus() != UnitStatus.OCCUPIED) {
+                        return unitRepository.save(unit.toBuilder().status(UnitStatus.OCCUPIED).build()).then();
+                    }
+                    return Mono.empty();
+                });
     }
     
     private OwnershipType mapInvitationTypeToOwnership(InvitationType type) {
@@ -723,7 +740,7 @@ public class InvitationUseCase {
                             .password(residentData.getPassword())
                             .build();
                     
-                    return createOrUpdateUser(ownerData, null)
+                    return createOrUpdateUser(ownerData, residentData.getEmail())
                             .flatMap(user -> {
                                 UserOrganization userOrg = UserOrganization.builder()
                                         .userId(user.getId())
@@ -881,7 +898,8 @@ public class InvitationUseCase {
                             .invitedBy(invitedBy)
                             .joinedAt(Instant.now())
                             .build();
-                    return userUnitRepository.save(userUnit);
+                    return userUnitRepository.save(userUnit)
+                            .flatMap(saved -> markUnitAsOccupied(unitId).thenReturn(saved));
                 });
     }
 

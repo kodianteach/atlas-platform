@@ -36,4 +36,8 @@ public class VisitorAuthorization {
     private Long revokedBy;
     private Instant createdAt;
     private Instant updatedAt;
+
+    // Transient enriched fields (not persisted)
+    private String unitCode;
+    private String createdByUserName;
 }

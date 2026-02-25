@@ -21,6 +21,11 @@ public class ResidentRegistrationData {
     private final String names;
     
     /**
+     * Email address (optional)
+     */
+    private final String email;
+    
+    /**
      * Phone number
      */
     private final String phone;
