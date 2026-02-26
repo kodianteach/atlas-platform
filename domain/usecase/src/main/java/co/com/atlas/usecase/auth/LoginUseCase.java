@@ -5,6 +5,8 @@ import co.com.atlas.model.auth.AuthToken;
 import co.com.atlas.model.auth.AuthUser;
 import co.com.atlas.model.auth.gateways.AuthUserRepository;
 import co.com.atlas.model.auth.gateways.JwtTokenGateway;
+import co.com.atlas.model.organization.Organization;
+import co.com.atlas.model.organization.gateways.OrganizationRepository;
 import co.com.atlas.model.permission.Permission;
 import co.com.atlas.model.permission.gateways.PermissionRepository;
 import co.com.atlas.model.role.Role;
@@ -29,6 +31,7 @@ public class LoginUseCase {
     private final UserRoleMultiRepository userRoleMultiRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final OrganizationRepository organizationRepository;
 
     public Mono<AuthToken> execute(AuthCredentials credentials) {
         return authUserRepository.findByEmailOrUsername(credentials.getEmail())
@@ -91,17 +94,28 @@ public class LoginUseCase {
                                         .build()));
             }
             
-            // Cargar roles del usuario en esa organización
-            return userRoleMultiRepository.findByUserIdAndOrganizationId(user.getId(), orgId)
+            // Cargar roles del usuario en esa organización y obtener nombre de la organización
+            Mono<String> orgNameMono = organizationRepository.findById(orgId)
+                    .map(Organization::getName)
+                    .defaultIfEmpty("");
+            
+            Mono<List<Role>> rolesMono = userRoleMultiRepository.findByUserIdAndOrganizationId(user.getId(), orgId)
                     .flatMap(urm -> roleRepository.findById(urm.getRoleId()))
-                    .collectList()
-                    .flatMap(roles -> loadPermissionsForRoles(roles)
-                            .map(permissions -> user.toBuilder()
-                                    .organizationId(orgId)
-                                    .roles(roles)
-                                    .permissions(permissions)
-                                    .enabledModules(List.of("ATLAS_CORE"))
-                                    .build()));
+                    .collectList();
+            
+            return Mono.zip(rolesMono, orgNameMono)
+                    .flatMap(tuple -> {
+                        List<Role> roles = tuple.getT1();
+                        String orgName = tuple.getT2();
+                        return loadPermissionsForRoles(roles)
+                                .map(permissions -> user.toBuilder()
+                                        .organizationId(orgId)
+                                        .organizationName(orgName)
+                                        .roles(roles)
+                                        .permissions(permissions)
+                                        .enabledModules(List.of("ATLAS_CORE"))
+                                        .build());
+                    });
         });
     }
     
