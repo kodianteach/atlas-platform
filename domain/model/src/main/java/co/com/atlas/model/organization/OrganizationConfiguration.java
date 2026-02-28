@@ -36,8 +36,57 @@ public class OrganizationConfiguration {
      */
     private Boolean enableOwnerPermissionManagement;
 
+    // ── Branding fields (HU #10) ──────────────────────────────────────────────
+
+    /**
+     * Logo image bytes (PNG or JPEG). Null when no logo configured.
+     */
+    private byte[] logoData;
+
+    /**
+     * MIME type of the logo image (image/png or image/jpeg).
+     */
+    private String logoContentType;
+
+    /**
+     * Dominant/primary brand color in hex format (#RRGGBB).
+     */
+    private String dominantColor;
+
+    /**
+     * Secondary brand color in hex format (#RRGGBB).
+     */
+    private String secondaryColor;
+
+    /**
+     * Accent brand color in hex format (#RRGGBB).
+     */
+    private String accentColor;
+
     private Instant createdAt;
     private Instant updatedAt;
+
+    /**
+     * Validates whether a color string is a valid hex color (#RRGGBB).
+     *
+     * @param color the color string to validate
+     * @return true if the color follows the #RRGGBB pattern
+     */
+    public static boolean isValidHexColor(String color) {
+        if (color == null) {
+            return true; // null is valid (means "not configured")
+        }
+        return color.matches("^#[0-9A-Fa-f]{6}$");
+    }
+
+    /**
+     * Checks whether this configuration has branding colors defined.
+     *
+     * @return true if at least the dominant color is configured
+     */
+    public boolean hasBranding() {
+        return dominantColor != null;
+    }
 
     /**
      * Retorna el límite máximo con fallback al valor por defecto.

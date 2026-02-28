@@ -21,6 +21,8 @@ public class Comment {
     private Long parentId;
     private String content;
     private Boolean isApproved;
+    private String flagReason;
+    private String authorRole;
     private Instant createdAt;
     private Instant updatedAt;
     private Instant deletedAt;

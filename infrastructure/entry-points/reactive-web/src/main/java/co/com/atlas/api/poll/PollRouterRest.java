@@ -174,6 +174,8 @@ public class PollRouterRest {
     })
     public RouterFunction<ServerResponse> pollRoutes(PollHandler handler) {
         return route(POST("/api/polls"), handler::create)
+                .andRoute(GET("/api/polls/admin/search"), handler::searchPolls)
+                .andRoute(GET("/api/polls/admin/stats"), handler::getPollStats)
                 .andRoute(GET("/api/polls/{id}"), handler::findById)
                 .andRoute(GET("/api/polls/organization/{organizationId}"), handler::findByOrganizationId)
                 .andRoute(GET("/api/polls/organization/{organizationId}/active"), handler::findActive)

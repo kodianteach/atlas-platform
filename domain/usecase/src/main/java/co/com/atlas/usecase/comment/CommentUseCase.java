@@ -2,6 +2,7 @@ package co.com.atlas.usecase.comment;
 
 import co.com.atlas.model.comment.Comment;
 import co.com.atlas.model.comment.gateways.CommentRepository;
+import co.com.atlas.model.comment.gateways.ContentModerationGateway;
 import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.common.NotFoundException;
 import co.com.atlas.model.post.PostStatus;
@@ -20,9 +21,11 @@ public class CommentUseCase {
     
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final ContentModerationGateway contentModerationGateway;
     
     /**
-     * Crea un nuevo comentario.
+     * Crea un nuevo comentario con moderación automática de contenido.
+     * Si el contenido es inapropiado, se persiste con isApproved=false y flagReason para revisión admin.
      */
     public Mono<Comment> create(Comment comment) {
         return postRepository.findById(comment.getPostId())
@@ -35,11 +38,22 @@ public class CommentUseCase {
                         return Mono.error(new BusinessException("POST_NOT_PUBLISHED", "No se puede comentar una publicación no publicada"));
                     }
                     
-                    Comment newComment = comment.toBuilder()
-                            .isApproved(true)
-                            .createdAt(Instant.now())
-                            .build();
-                    return commentRepository.save(newComment);
+                    return contentModerationGateway.isContentAppropriate(comment.getContent())
+                            .flatMap(isAppropriate -> {
+                                if (!Boolean.TRUE.equals(isAppropriate)) {
+                                    Comment flaggedComment = comment.toBuilder()
+                                            .isApproved(false)
+                                            .flagReason("Contenido detectado como inapropiado por moderación automática")
+                                            .createdAt(Instant.now())
+                                            .build();
+                                    return commentRepository.save(flaggedComment);
+                                }
+                                Comment newComment = comment.toBuilder()
+                                        .isApproved(true)
+                                        .createdAt(Instant.now())
+                                        .build();
+                                return commentRepository.save(newComment);
+                            });
                 });
     }
     
@@ -83,5 +97,33 @@ public class CommentUseCase {
                             .build();
                     return commentRepository.save(deleted).then();
                 });
+    }
+
+    /**
+     * Oculta un comentario (marca como no aprobado). Solo visible para ADMIN_ATLAS.
+     */
+    public Mono<Comment> hideComment(Long id) {
+        return commentRepository.updateApproval(id, false);
+    }
+
+    /**
+     * Aprueba un comentario flaggeado (falso positivo de moderación).
+     */
+    public Mono<Comment> approveComment(Long id) {
+        return commentRepository.updateApproval(id, true);
+    }
+
+    /**
+     * Obtiene comentarios flaggeados por moderación automática de una organización.
+     */
+    public Flux<Comment> findFlaggedByOrganization(Long organizationId) {
+        return commentRepository.findFlaggedByOrganization(organizationId);
+    }
+
+    /**
+     * Obtiene todos los comentarios de un post incluyendo los no aprobados (vista admin).
+     */
+    public Flux<Comment> findAllByPostIdAdmin(Long postId) {
+        return commentRepository.findAllByPostId(postId);
     }
 }

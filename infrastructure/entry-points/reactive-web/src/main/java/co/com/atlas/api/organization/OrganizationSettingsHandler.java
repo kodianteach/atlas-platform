@@ -17,6 +17,8 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.util.Base64;
+
 /**
  * Handler para configuración de organización.
  */
@@ -42,6 +44,12 @@ public class OrganizationSettingsHandler {
                     .enableOwnerPermissionManagement(
                         settings.getEnableOwnerPermissionManagement() != null
                             ? settings.getEnableOwnerPermissionManagement() : false)
+                    .logoBase64(settings.getLogoData() != null
+                        ? Base64.getEncoder().encodeToString(settings.getLogoData()) : null)
+                    .logoContentType(settings.getLogoContentType())
+                    .dominantColor(settings.getDominantColor())
+                    .secondaryColor(settings.getSecondaryColor())
+                    .accentColor(settings.getAccentColor())
                     .message("Configuración obtenida exitosamente")
                     .build();
 
@@ -82,7 +90,23 @@ public class OrganizationSettingsHandler {
                             ? req.getEnableOwnerPermissionManagement() : false)
                     .build();
 
-                return organizationSettingsUseCase.updateSettings(organizationId, configuration);
+                // Save general settings first
+                Mono<OrganizationConfiguration> settingsMono = organizationSettingsUseCase
+                    .updateSettings(organizationId, configuration);
+
+                // If branding data is present, chain branding update
+                boolean hasBranding = req.getDominantColor() != null || req.getLogoBase64() != null;
+                if (hasBranding) {
+                    byte[] logoData = req.getLogoBase64() != null
+                        ? Base64.getDecoder().decode(req.getLogoBase64()) : null;
+
+                    settingsMono = settingsMono.flatMap(saved ->
+                        organizationSettingsUseCase.updateBranding(
+                            organizationId, logoData, req.getLogoContentType(),
+                            req.getDominantColor(), req.getSecondaryColor(), req.getAccentColor()));
+                }
+
+                return settingsMono;
             })
             .flatMap(updatedSettings -> {
                 OrganizationSettingsResponse response = OrganizationSettingsResponse.builder()
@@ -90,6 +114,12 @@ public class OrganizationSettingsHandler {
                     .enableOwnerPermissionManagement(
                         updatedSettings.getEnableOwnerPermissionManagement() != null
                             ? updatedSettings.getEnableOwnerPermissionManagement() : false)
+                    .logoBase64(updatedSettings.getLogoData() != null
+                        ? Base64.getEncoder().encodeToString(updatedSettings.getLogoData()) : null)
+                    .logoContentType(updatedSettings.getLogoContentType())
+                    .dominantColor(updatedSettings.getDominantColor())
+                    .secondaryColor(updatedSettings.getSecondaryColor())
+                    .accentColor(updatedSettings.getAccentColor())
                     .message("Configuración actualizada exitosamente")
                     .build();
 

@@ -2,6 +2,11 @@ package co.com.atlas.usecase.poll;
 
 import co.com.atlas.model.common.BusinessException;
 import co.com.atlas.model.common.NotFoundException;
+import co.com.atlas.model.common.PageResponse;
+import co.com.atlas.model.common.PostPollFilter;
+import co.com.atlas.model.notification.Notification;
+import co.com.atlas.model.notification.NotificationType;
+import co.com.atlas.model.notification.gateways.NotificationRepository;
 import co.com.atlas.model.poll.Poll;
 import co.com.atlas.model.poll.PollOption;
 import co.com.atlas.model.poll.PollStatus;
@@ -15,6 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Caso de uso para gestión de encuestas.
@@ -25,6 +31,7 @@ public class PollUseCase {
     private final PollRepository pollRepository;
     private final PollOptionRepository pollOptionRepository;
     private final PollVoteRepository pollVoteRepository;
+    private final NotificationRepository notificationRepository;
     
     /**
      * Crea una nueva encuesta con opciones.
@@ -62,33 +69,45 @@ public class PollUseCase {
     public Mono<Poll> findById(Long id) {
         return pollRepository.findById(id)
                 .switchIfEmpty(Mono.error(new NotFoundException("Poll", id)))
-                .flatMap(poll -> pollOptionRepository.findByPollId(id)
-                        .flatMap(option -> pollVoteRepository.countByOptionId(option.getId())
-                                .map(count -> option.toBuilder().voteCount(count).build()))
-                        .collectList()
-                        .map(options -> poll.toBuilder().options(options).build()));
+                .flatMap(this::enrichWithOptions);
     }
     
     /**
-     * Lista encuestas de una organización.
+     * Lista encuestas de una organización (con opciones y votos).
      */
     public Flux<Poll> findByOrganizationId(Long organizationId) {
-        return pollRepository.findByOrganizationId(organizationId);
+        return pollRepository.findByOrganizationId(organizationId)
+                .flatMap(this::enrichWithOptions);
     }
     
     /**
-     * Lista encuestas activas de una organización.
+     * Lista encuestas activas de una organización (con opciones y votos).
      */
     public Flux<Poll> findActiveByOrganizationId(Long organizationId) {
-        return pollRepository.findActiveByOrganizationId(organizationId);
+        return pollRepository.findActiveByOrganizationId(organizationId)
+                .flatMap(this::enrichWithOptions);
+    }
+
+    /**
+     * Enriquece un poll con sus opciones y conteo de votos.
+     */
+    private Mono<Poll> enrichWithOptions(Poll poll) {
+        return pollOptionRepository.findByPollId(poll.getId())
+                .flatMap(option -> pollVoteRepository.countByOptionId(option.getId())
+                        .map(count -> option.toBuilder().voteCount(count).build()))
+                .collectList()
+                .map(options -> poll.toBuilder().options(options).build());
     }
     
     /**
-     * Activa una encuesta (cambia estado a ACTIVE).
+     * Activa una encuesta (cambia estado a ACTIVE) con verificación organizacional.
      */
-    public Mono<Poll> activate(Long id) {
+    public Mono<Poll> activate(Long id, Long organizationId) {
         return findById(id)
                 .flatMap(poll -> {
+                    if (!poll.getOrganizationId().equals(organizationId)) {
+                        return Mono.error(new BusinessException("ACCESS_DENIED", "No tiene acceso a este recurso"));
+                    }
                     if (poll.getStatus() != PollStatus.DRAFT) {
                         return Mono.error(new BusinessException("INVALID_STATE", "Solo se pueden activar encuestas en borrador"));
                     }
@@ -97,16 +116,33 @@ public class PollUseCase {
                             .startsAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build();
-                    return pollRepository.save(updatedPoll);
+                    return pollRepository.save(updatedPoll)
+                            .flatMap(saved -> {
+                                Notification notification = Notification.builder()
+                                        .organizationId(saved.getOrganizationId())
+                                        .title("Nueva encuesta")
+                                        .message(saved.getTitle())
+                                        .type(NotificationType.POLL_ACTIVATED)
+                                        .isRead(false)
+                                        .entityType("POLL")
+                                        .entityId(saved.getId())
+                                        .createdAt(Instant.now())
+                                        .build();
+                                return notificationRepository.save(notification)
+                                        .thenReturn(saved);
+                            });
                 });
     }
     
     /**
-     * Cierra una encuesta.
+     * Cierra una encuesta con verificación organizacional.
      */
-    public Mono<Poll> close(Long id) {
+    public Mono<Poll> close(Long id, Long organizationId) {
         return findById(id)
                 .flatMap(poll -> {
+                    if (!poll.getOrganizationId().equals(organizationId)) {
+                        return Mono.error(new BusinessException("ACCESS_DENIED", "No tiene acceso a este recurso"));
+                    }
                     if (poll.getStatus() != PollStatus.ACTIVE) {
                         return Mono.error(new BusinessException("INVALID_STATE", "Solo se pueden cerrar encuestas activas"));
                     }
@@ -121,6 +157,7 @@ public class PollUseCase {
     
     /**
      * Emite un voto en una encuesta.
+     * Siempre guarda userId para auditoría. La visibilidad del votante se controla en la capa handler.
      */
     public Mono<PollVote> vote(Long pollId, Long optionId, Long userId) {
         return findById(pollId)
@@ -136,26 +173,29 @@ public class PollUseCase {
                         return Mono.error(new BusinessException("INVALID_OPTION", "La opción no pertenece a esta encuesta"));
                     }
                     
-                    // Verificar si ya votó (solo si no es anónimo y no permite múltiple)
-                    if (!Boolean.TRUE.equals(poll.getAllowMultiple()) && !Boolean.TRUE.equals(poll.getIsAnonymous())) {
+                    // Verificar duplicados SIEMPRE cuando no permite múltiple (independiente de isAnonymous)
+                    if (!Boolean.TRUE.equals(poll.getAllowMultiple())) {
                         return pollVoteRepository.existsByPollIdAndUserId(pollId, userId)
                                 .flatMap(exists -> {
                                     if (Boolean.TRUE.equals(exists)) {
                                         return Mono.error(new BusinessException("ALREADY_VOTED", "Ya has votado en esta encuesta"));
                                     }
-                                    return saveVote(pollId, optionId, userId, poll.getIsAnonymous());
+                                    return saveVote(pollId, optionId, userId);
                                 });
                     }
                     
-                    return saveVote(pollId, optionId, userId, poll.getIsAnonymous());
+                    return saveVote(pollId, optionId, userId);
                 });
     }
     
-    private Mono<PollVote> saveVote(Long pollId, Long optionId, Long userId, Boolean isAnonymous) {
+    /**
+     * Guarda un voto. Siempre persiste userId para auditoría.
+     */
+    private Mono<PollVote> saveVote(Long pollId, Long optionId, Long userId) {
         PollVote vote = PollVote.builder()
                 .pollId(pollId)
                 .optionId(optionId)
-                .userId(Boolean.TRUE.equals(isAnonymous) ? null : userId)
+                .userId(userId)
                 .createdAt(Instant.now())
                 .build();
         return pollVoteRepository.save(vote);
@@ -166,5 +206,34 @@ public class PollUseCase {
      */
     public Mono<Poll> getResults(Long pollId) {
         return findById(pollId);
+    }
+
+    /**
+     * Búsqueda paginada de encuestas por filtros dinámicos para panel admin.
+     * Enriquece cada encuesta con sus opciones y conteo de votos.
+     */
+    public Mono<PageResponse<Poll>> findByFilters(Long organizationId, PostPollFilter filter) {
+        return pollRepository.findByFilters(organizationId, filter)
+                .flatMap(page -> {
+                    if (page.getContent() == null || page.getContent().isEmpty()) {
+                        return Mono.just(page);
+                    }
+                    return reactor.core.publisher.Flux.fromIterable(page.getContent())
+                            .flatMap(this::enrichWithOptions)
+                            .collectList()
+                            .map(enrichedPolls -> PageResponse.of(
+                                    enrichedPolls,
+                                    page.getPage(),
+                                    page.getSize(),
+                                    page.getTotalElements()
+                            ));
+                });
+    }
+
+    /**
+     * Conteo de encuestas por estado para estadísticas del panel admin.
+     */
+    public Mono<Map<String, Long>> countByStatus(Long organizationId) {
+        return pollRepository.countByStatusAndOrganization(organizationId);
     }
 }

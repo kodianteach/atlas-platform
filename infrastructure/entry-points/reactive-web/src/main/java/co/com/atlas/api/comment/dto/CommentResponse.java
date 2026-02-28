@@ -18,5 +18,7 @@ public class CommentResponse {
     private Long parentId;
     private String content;
     private Boolean isApproved;
+    private String flagReason;
+    private String authorRole;
     private Instant createdAt;
 }

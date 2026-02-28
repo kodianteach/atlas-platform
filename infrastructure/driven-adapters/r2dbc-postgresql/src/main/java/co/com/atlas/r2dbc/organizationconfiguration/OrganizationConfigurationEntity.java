@@ -32,6 +32,23 @@ public class OrganizationConfigurationEntity {
     @Column("enable_owner_permission_management")
     private Boolean enableOwnerPermissionManagement;
 
+    // Branding fields (HU #10)
+
+    @Column("logo_data")
+    private byte[] logoData;
+
+    @Column("logo_content_type")
+    private String logoContentType;
+
+    @Column("dominant_color")
+    private String dominantColor;
+
+    @Column("secondary_color")
+    private String secondaryColor;
+
+    @Column("accent_color")
+    private String accentColor;
+
     @Column("created_at")
     private Instant createdAt;
 

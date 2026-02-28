@@ -40,6 +40,11 @@ public class OrganizationConfigurationRepositoryAdapter implements OrganizationC
                 .organizationId(entity.getOrganizationId())
                 .maxUnitsPerDistribution(entity.getMaxUnitsPerDistribution())
                 .enableOwnerPermissionManagement(entity.getEnableOwnerPermissionManagement())
+                .logoData(entity.getLogoData())
+                .logoContentType(entity.getLogoContentType())
+                .dominantColor(entity.getDominantColor())
+                .secondaryColor(entity.getSecondaryColor())
+                .accentColor(entity.getAccentColor())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
@@ -51,6 +56,11 @@ public class OrganizationConfigurationRepositoryAdapter implements OrganizationC
                 .organizationId(domain.getOrganizationId())
                 .maxUnitsPerDistribution(domain.getMaxUnitsPerDistribution())
                 .enableOwnerPermissionManagement(domain.getEnableOwnerPermissionManagement())
+                .logoData(domain.getLogoData())
+                .logoContentType(domain.getLogoContentType())
+                .dominantColor(domain.getDominantColor())
+                .secondaryColor(domain.getSecondaryColor())
+                .accentColor(domain.getAccentColor())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
                 .build();

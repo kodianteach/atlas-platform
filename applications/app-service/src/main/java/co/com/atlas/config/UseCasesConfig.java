@@ -74,6 +74,10 @@ import co.com.atlas.model.porter.gateways.PorterEnrollmentTokenRepository;
 import co.com.atlas.model.porter.gateways.PorterRepository;
 import co.com.atlas.model.vehicle.gateways.VehicleRepository;
 import co.com.atlas.model.invitation.gateways.InvitationAuditRepository;
+import co.com.atlas.model.notification.gateways.NotificationRepository;
+import co.com.atlas.model.comment.gateways.ContentModerationGateway;
+import co.com.atlas.usecase.notification.NotificationUseCase;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -92,16 +96,14 @@ public class UseCasesConfig {
             UserOrganizationRepository userOrganizationRepository,
             UserRoleMultiRepository userRoleMultiRepository,
             RoleRepository roleRepository,
-            PermissionRepository permissionRepository,
-            OrganizationRepository organizationRepository) {
+            PermissionRepository permissionRepository) {
         return new LoginUseCase(
                 authUserRepository,
                 jwtTokenGateway,
                 userOrganizationRepository,
                 userRoleMultiRepository,
                 roleRepository,
-                permissionRepository,
-                organizationRepository);
+                permissionRepository);
     }
 
     @Bean
@@ -223,16 +225,18 @@ public class UseCasesConfig {
 
     // Post Use Cases
     @Bean
-    public PostUseCase postUseCase(PostRepository postRepository) {
-        return new PostUseCase(postRepository);
+    public PostUseCase postUseCase(PostRepository postRepository,
+                                   NotificationRepository notificationRepository) {
+        return new PostUseCase(postRepository, notificationRepository);
     }
 
     // Comment Use Cases
     @Bean
     public CommentUseCase commentUseCase(
             CommentRepository commentRepository,
-            PostRepository postRepository) {
-        return new CommentUseCase(commentRepository, postRepository);
+            PostRepository postRepository,
+            ContentModerationGateway contentModerationGateway) {
+        return new CommentUseCase(commentRepository, postRepository, contentModerationGateway);
     }
 
     // Poll Use Cases
@@ -240,8 +244,15 @@ public class UseCasesConfig {
     public PollUseCase pollUseCase(
             PollRepository pollRepository,
             PollOptionRepository pollOptionRepository,
-            PollVoteRepository pollVoteRepository) {
-        return new PollUseCase(pollRepository, pollOptionRepository, pollVoteRepository);
+            PollVoteRepository pollVoteRepository,
+            NotificationRepository notificationRepository) {
+        return new PollUseCase(pollRepository, pollOptionRepository, pollVoteRepository, notificationRepository);
+    }
+
+    // Notification Use Cases
+    @Bean
+    public NotificationUseCase notificationUseCase(NotificationRepository notificationRepository) {
+        return new NotificationUseCase(notificationRepository);
     }
 
     // Admin Pre-Registration Use Cases
@@ -395,8 +406,9 @@ public class UseCasesConfig {
     @Bean
     public OrganizationSettingsUseCase organizationSettingsUseCase(
             OrganizationRepository organizationRepository,
-            OrganizationConfigurationRepository organizationConfigurationRepository) {
-        return new OrganizationSettingsUseCase(organizationRepository, organizationConfigurationRepository);
+            OrganizationConfigurationRepository organizationConfigurationRepository,
+            @Value("${atlas.branding.max-logo-size-bytes:2097152}") long maxLogoSizeBytes) {
+        return new OrganizationSettingsUseCase(organizationRepository, organizationConfigurationRepository, maxLogoSizeBytes);
     }
 
     // Porter Use Cases

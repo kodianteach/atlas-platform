@@ -20,4 +20,10 @@ public interface CommentRepository {
     Mono<Long> countByPostId(Long postId);
     
     Mono<Void> deleteById(Long id);
+
+    Flux<Comment> findFlaggedByOrganization(Long organizationId);
+
+    Mono<Comment> updateApproval(Long id, boolean isApproved);
+
+    Flux<Comment> findAllByPostId(Long postId);
 }

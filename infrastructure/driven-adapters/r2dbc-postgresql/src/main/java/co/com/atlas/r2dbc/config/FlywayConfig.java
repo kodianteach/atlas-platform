@@ -39,9 +39,6 @@ public class FlywayConfig {
     @Value("${spring.flyway.baseline-on-migrate:true}")
     private boolean baselineOnMigrate;
 
-    @Value("${spring.flyway.validate-on-migrate:true}")
-    private boolean validateOnMigrate;
-
     /**
      * Configura y ejecuta Flyway para las migraciones de base de datos.
      * Se ejecuta automáticamente al iniciar la aplicación.
@@ -54,7 +51,6 @@ public class FlywayConfig {
                 .dataSource(url, user, password)
                 .locations(locations.toArray(new String[0]))
                 .baselineOnMigrate(baselineOnMigrate)
-                .validateOnMigrate(validateOnMigrate)
                 .load();
     }
 }

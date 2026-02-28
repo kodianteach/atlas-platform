@@ -35,6 +35,12 @@ public class CommentEntity {
     @Column("is_approved")
     private Boolean isApproved;
 
+    @Column("flag_reason")
+    private String flagReason;
+
+    @Column("author_role")
+    private String authorRole;
+
     @Column("created_at")
     private Instant createdAt;
 

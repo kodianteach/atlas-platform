@@ -33,11 +33,6 @@ public class AuthToken {
     private Long organizationId;
     
     /**
-     * Nombre de la organización actual del usuario.
-     */
-    private String organizationName;
-    
-    /**
      * Lista de códigos de módulos habilitados para la organización actual.
      */
     private List<String> enabledModules;

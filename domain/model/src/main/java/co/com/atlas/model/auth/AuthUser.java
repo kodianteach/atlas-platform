@@ -63,12 +63,6 @@ public class AuthUser {
     private Long organizationId;
     
     /**
-     * Nombre de la organización actual del usuario.
-     * Incluido en JWT claims para mostrar en el frontend.
-     */
-    private String organizationName;
-    
-    /**
      * Lista de códigos de módulos habilitados para la organización actual.
      * Ejemplo: ["ATLAS_CORE"]
      */

@@ -7,9 +7,9 @@ spring:
     add-properties: false
   # Configuración R2DBC para conexión reactiva a MySQL
   r2dbc:
-    url: r2dbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:atlas}?useUnicode=true&characterEncoding=UTF-8
+    url: r2dbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:atlas_platform}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD:12345}
     pool:
       enabled: true
       initial-size: 12
@@ -18,14 +18,14 @@ spring:
       validation-query: SELECT 1
   # Configuración Flyway para migraciones (usa JDBC ya que Flyway no soporta R2DBC directamente)
   flyway:
-    enabled: true
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:atlas}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    enabled: false
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:atlas_platform}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     user: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD:12345}
     locations: classpath:db/migration
     baseline-on-migrate: true
     baseline-version: 0
-    validate-on-migrate: false  # Desactivado temporalmente por conflicto checksum en V21
+    validate-on-migrate: true
     out-of-order: false
     clean-disabled: true
   # Configuración de correo electrónico (bajo spring.mail para auto-config de Spring Boot)
@@ -59,6 +59,9 @@ app:
 atlas:
   crypto:
     master-key: ${CRYPTO_MASTER_KEY:DefaultDevMasterKey256bit!}
+  branding:
+    max-logo-size-bytes: ${BRANDING_MAX_LOGO_SIZE:2097152}
+    allowed-content-types: image/png,image/jpeg
 
 # Propiedades personalizadas para el adaptador R2DBC
 adapters:
@@ -67,7 +70,7 @@ adapters:
     port: ${DB_PORT:3306}
     database: ${DB_NAME:atlas_platform}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD:12345}
 
 management:
   endpoints:

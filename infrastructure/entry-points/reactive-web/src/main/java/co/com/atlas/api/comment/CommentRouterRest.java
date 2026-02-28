@@ -129,10 +129,14 @@ public class CommentRouterRest {
     })
     public RouterFunction<ServerResponse> commentRoutes(CommentHandler handler) {
         return route(POST("/api/comments"), handler::create)
+                .andRoute(GET("/api/comments/flagged/{organizationId}"), handler::getFlaggedComments)
+                .andRoute(GET("/api/comments/post/{postId}/all"), handler::getAllCommentsByPost)
                 .andRoute(GET("/api/comments/{id}"), handler::findById)
                 .andRoute(DELETE("/api/comments/{id}"), handler::delete)
                 .andRoute(GET("/api/comments/post/{postId}"), handler::findByPostId)
                 .andRoute(GET("/api/comments/post/{postId}/count"), handler::countByPostId)
-                .andRoute(GET("/api/comments/{parentId}/replies"), handler::findReplies);
+                .andRoute(GET("/api/comments/{parentId}/replies"), handler::findReplies)
+                .andRoute(POST("/api/comments/{id}/hide"), handler::hideComment)
+                .andRoute(POST("/api/comments/{id}/approve"), handler::approveComment);
     }
 }
