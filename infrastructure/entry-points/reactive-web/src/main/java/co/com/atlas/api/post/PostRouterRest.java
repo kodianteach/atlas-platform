@@ -179,6 +179,8 @@ public class PostRouterRest {
     })
     public RouterFunction<ServerResponse> postRoutes(PostHandler handler) {
         return route(POST("/api/posts"), handler::create)
+                .andRoute(GET("/api/posts/admin/search"), handler::searchPosts)
+                .andRoute(GET("/api/posts/admin/stats"), handler::getPostStats)
                 .andRoute(GET("/api/posts/{id}"), handler::findById)
                 .andRoute(PUT("/api/posts/{id}"), handler::update)
                 .andRoute(DELETE("/api/posts/{id}"), handler::delete)
@@ -186,6 +188,7 @@ public class PostRouterRest {
                 .andRoute(GET("/api/posts/organization/{organizationId}/published"), handler::findPublished)
                 .andRoute(POST("/api/posts/{id}/publish"), handler::publish)
                 .andRoute(POST("/api/posts/{id}/archive"), handler::archive)
-                .andRoute(POST("/api/posts/{id}/toggle-pin"), handler::togglePin);
+                .andRoute(POST("/api/posts/{id}/toggle-pin"), handler::togglePin)
+                .andRoute(POST("/api/posts/{id}/reactivate"), handler::reactivatePost);
     }
 }

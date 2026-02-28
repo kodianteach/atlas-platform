@@ -1,9 +1,11 @@
 package co.com.atlas.r2dbc.common;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Utility class for building dynamic SQL queries with optional filters.
@@ -31,6 +33,7 @@ public class DynamicQueryBuilder {
     private final Map<String, Object> bindings;
     private String orderByClause;
     private Integer limitValue;
+    private Integer offsetValue;
     private int paramCounter;
 
     private DynamicQueryBuilder(String tableName) {
@@ -157,6 +160,61 @@ public class DynamicQueryBuilder {
     }
 
     /**
+     * Sets an OFFSET for pagination.
+     *
+     * @param offset number of rows to skip
+     * @return this builder for chaining
+     */
+    public DynamicQueryBuilder offset(int offset) {
+        this.offsetValue = offset;
+        return this;
+    }
+
+    /**
+     * Adds an optional IN condition for filtering by multiple values.
+     * Skipped if values is null or empty.
+     *
+     * @param column the column name
+     * @param values the collection of values to match
+     * @return this builder for chaining
+     */
+    public DynamicQueryBuilder whereOptionalIn(String column, Collection<?> values) {
+        if (values != null && !values.isEmpty()) {
+            List<String> paramNames = new ArrayList<>();
+            int index = 0;
+            for (Object value : values) {
+                String paramName = generateParamName(column + "_in_" + index);
+                paramNames.add(":" + paramName);
+                bindings.put(paramName, value);
+                index++;
+            }
+            conditions.add(column + " IN (" + String.join(", ", paramNames) + ")");
+        }
+        return this;
+    }
+
+    /**
+     * Adds an optional ILIKE condition searching multiple columns.
+     * Skipped if value is null or blank.
+     *
+     * @param columns the columns to search in
+     * @param value   the search term
+     * @return this builder for chaining
+     */
+    public DynamicQueryBuilder whereOptionalIlikeMultiple(List<String> columns, String value) {
+        if (value != null && !value.isBlank() && !columns.isEmpty()) {
+            List<String> ilikeConditions = new ArrayList<>();
+            for (String column : columns) {
+                String paramName = generateParamName(column);
+                ilikeConditions.add(column + " ILIKE :" + paramName);
+                bindings.put(paramName, "%" + value + "%");
+            }
+            conditions.add("(" + String.join(" OR ", ilikeConditions) + ")");
+        }
+        return this;
+    }
+
+    /**
      * Builds a SELECT * query with all configured conditions.
      *
      * @return the complete SQL query string
@@ -187,6 +245,26 @@ public class DynamicQueryBuilder {
 
         if (limitValue != null) {
             sql.append(" LIMIT ").append(limitValue);
+        }
+
+        if (offsetValue != null) {
+            sql.append(" OFFSET ").append(offsetValue);
+        }
+
+        return sql.toString();
+    }
+
+    /**
+     * Builds a SELECT COUNT(*) query with all configured WHERE conditions.
+     * Ignores ORDER BY, LIMIT, and OFFSET.
+     *
+     * @return the count SQL query string
+     */
+    public String buildCount() {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM ").append(tableName);
+
+        if (!conditions.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" AND ", conditions));
         }
 
         return sql.toString();

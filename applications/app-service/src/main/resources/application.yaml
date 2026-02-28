@@ -59,6 +59,9 @@ app:
 atlas:
   crypto:
     master-key: ${CRYPTO_MASTER_KEY:DefaultDevMasterKey256bit!}
+  branding:
+    max-logo-size-bytes: ${BRANDING_MAX_LOGO_SIZE:2097152}
+    allowed-content-types: image/png,image/jpeg
 
 # Propiedades personalizadas para el adaptador R2DBC
 adapters:
