@@ -6,6 +6,7 @@ import co.com.atlas.api.poll.dto.PollRequest;
 import co.com.atlas.api.poll.dto.PollResponse;
 import co.com.atlas.api.poll.dto.PollResultsResponse;
 import co.com.atlas.api.poll.dto.VoteRequest;
+import co.com.atlas.model.common.PageResponse;
 import co.com.atlas.model.common.PostPollFilter;
 import co.com.atlas.model.poll.Poll;
 import co.com.atlas.model.poll.PollOption;
@@ -18,6 +19,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -144,7 +146,7 @@ public class PollHandler {
                 ? poll.getOptions().stream()
                         .map(opt -> toOptionResponse(opt, totalVotes))
                         .collect(Collectors.toList())
-                : null;
+                : Collections.emptyList();
 
         return PollResponse.builder()
                 .id(poll.getId())
@@ -225,8 +227,19 @@ public class PollHandler {
                 .build();
 
         return pollUseCase.findByFilters(organizationId, filter)
-                .flatMap(pageResponse -> ServerResponse.ok()
-                        .bodyValue(ApiResponse.success(pageResponse, "Encuestas obtenidas exitosamente")));
+                .flatMap(pageResponse -> {
+                    List<PollResponse> mapped = pageResponse.getContent().stream()
+                            .map(this::toResponse)
+                            .toList();
+                    PageResponse<PollResponse> result = PageResponse.of(
+                            mapped,
+                            pageResponse.getPage(),
+                            pageResponse.getSize(),
+                            pageResponse.getTotalElements()
+                    );
+                    return ServerResponse.ok()
+                            .bodyValue(ApiResponse.success(result, "Encuestas obtenidas exitosamente"));
+                });
     }
 
     /**

@@ -33,7 +33,8 @@ public class PollVoteRepositoryAdapter implements PollVoteRepository {
 
     @Override
     public Mono<Boolean> existsByPollIdAndUserId(Long pollId, Long userId) {
-        return repository.existsByPollIdAndUserId(pollId, userId);
+        return repository.countByPollIdAndUserId(pollId, userId)
+                .map(count -> count > 0);
     }
 
     @Override

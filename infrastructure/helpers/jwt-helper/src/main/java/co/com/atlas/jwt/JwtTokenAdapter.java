@@ -56,8 +56,6 @@ public class JwtTokenAdapter implements JwtTokenGateway {
                         .roles(user.getRoles())
                         .permissions(user.getPermissions())
                         .modulePermissions(user.getModulePermissions())
-                        .organizationId(user.getOrganizationId())
-                        .organizationName(user.getOrganizationName())
                         .build());
     }
 
@@ -174,11 +172,6 @@ public class JwtTokenAdapter implements JwtTokenGateway {
         // MULTI-TENANT: Agregar organizationId (CRÍTICO para tenant isolation)
         if (user.getOrganizationId() != null) {
             claims.put("organizationId", user.getOrganizationId());
-        }
-        
-        // MULTI-TENANT: Agregar organizationName para mostrar en frontend
-        if (user.getOrganizationName() != null && !user.getOrganizationName().isEmpty()) {
-            claims.put("organizationName", user.getOrganizationName());
         }
         
         // MULTI-TENANT: Agregar módulos habilitados para esta organización

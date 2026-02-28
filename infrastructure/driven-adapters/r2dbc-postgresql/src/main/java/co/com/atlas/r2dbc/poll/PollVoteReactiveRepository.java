@@ -11,8 +11,8 @@ public interface PollVoteReactiveRepository extends ReactiveCrudRepository<PollV
 
     Flux<PollVoteEntity> findByOptionId(Long optionId);
 
-    @Query("SELECT COUNT(*) > 0 FROM poll_votes WHERE poll_id = :pollId AND user_id = :userId")
-    Mono<Boolean> existsByPollIdAndUserId(Long pollId, Long userId);
+    @Query("SELECT COUNT(*) FROM poll_votes WHERE poll_id = :pollId AND user_id = :userId")
+    Mono<Long> countByPollIdAndUserId(Long pollId, Long userId);
 
     @Query("SELECT COUNT(*) FROM poll_votes WHERE option_id = :optionId")
     Mono<Long> countByOptionId(Long optionId);

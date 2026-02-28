@@ -96,16 +96,14 @@ public class UseCasesConfig {
             UserOrganizationRepository userOrganizationRepository,
             UserRoleMultiRepository userRoleMultiRepository,
             RoleRepository roleRepository,
-            PermissionRepository permissionRepository,
-            OrganizationRepository organizationRepository) {
+            PermissionRepository permissionRepository) {
         return new LoginUseCase(
                 authUserRepository,
                 jwtTokenGateway,
                 userOrganizationRepository,
                 userRoleMultiRepository,
                 roleRepository,
-                permissionRepository,
-                organizationRepository);
+                permissionRepository);
     }
 
     @Bean
