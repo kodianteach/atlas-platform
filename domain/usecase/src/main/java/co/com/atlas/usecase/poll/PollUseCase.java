@@ -69,25 +69,34 @@ public class PollUseCase {
     public Mono<Poll> findById(Long id) {
         return pollRepository.findById(id)
                 .switchIfEmpty(Mono.error(new NotFoundException("Poll", id)))
-                .flatMap(poll -> pollOptionRepository.findByPollId(id)
-                        .flatMap(option -> pollVoteRepository.countByOptionId(option.getId())
-                                .map(count -> option.toBuilder().voteCount(count).build()))
-                        .collectList()
-                        .map(options -> poll.toBuilder().options(options).build()));
+                .flatMap(this::enrichWithOptions);
     }
     
     /**
-     * Lista encuestas de una organización.
+     * Lista encuestas de una organización (con opciones y votos).
      */
     public Flux<Poll> findByOrganizationId(Long organizationId) {
-        return pollRepository.findByOrganizationId(organizationId);
+        return pollRepository.findByOrganizationId(organizationId)
+                .flatMap(this::enrichWithOptions);
     }
     
     /**
-     * Lista encuestas activas de una organización.
+     * Lista encuestas activas de una organización (con opciones y votos).
      */
     public Flux<Poll> findActiveByOrganizationId(Long organizationId) {
-        return pollRepository.findActiveByOrganizationId(organizationId);
+        return pollRepository.findActiveByOrganizationId(organizationId)
+                .flatMap(this::enrichWithOptions);
+    }
+
+    /**
+     * Enriquece un poll con sus opciones y conteo de votos.
+     */
+    private Mono<Poll> enrichWithOptions(Poll poll) {
+        return pollOptionRepository.findByPollId(poll.getId())
+                .flatMap(option -> pollVoteRepository.countByOptionId(option.getId())
+                        .map(count -> option.toBuilder().voteCount(count).build()))
+                .collectList()
+                .map(options -> poll.toBuilder().options(options).build());
     }
     
     /**
@@ -201,9 +210,24 @@ public class PollUseCase {
 
     /**
      * Búsqueda paginada de encuestas por filtros dinámicos para panel admin.
+     * Enriquece cada encuesta con sus opciones y conteo de votos.
      */
     public Mono<PageResponse<Poll>> findByFilters(Long organizationId, PostPollFilter filter) {
-        return pollRepository.findByFilters(organizationId, filter);
+        return pollRepository.findByFilters(organizationId, filter)
+                .flatMap(page -> {
+                    if (page.getContent() == null || page.getContent().isEmpty()) {
+                        return Mono.just(page);
+                    }
+                    return reactor.core.publisher.Flux.fromIterable(page.getContent())
+                            .flatMap(this::enrichWithOptions)
+                            .collectList()
+                            .map(enrichedPolls -> PageResponse.of(
+                                    enrichedPolls,
+                                    page.getPage(),
+                                    page.getSize(),
+                                    page.getTotalElements()
+                            ));
+                });
     }
 
     /**
