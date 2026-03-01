@@ -68,6 +68,8 @@ public class SecurityConfig {
                         .pathMatchers("/favicon.ico").permitAll()
                         // Actuator
                         .pathMatchers("/actuator/**").permitAll()
+                        // WebSocket endpoint (auth validated in handshake)
+                        .pathMatchers("/ws/**").permitAll()
                         // Todos los demás endpoints requieren autenticación
                         .anyExchange().authenticated()
                 )

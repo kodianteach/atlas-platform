@@ -76,6 +76,9 @@ import co.com.atlas.model.vehicle.gateways.VehicleRepository;
 import co.com.atlas.model.invitation.gateways.InvitationAuditRepository;
 import co.com.atlas.model.notification.gateways.NotificationRepository;
 import co.com.atlas.model.comment.gateways.ContentModerationGateway;
+import co.com.atlas.model.message.gateways.ChannelMessageRepository;
+import co.com.atlas.usecase.message.ChannelMessageUseCase;
+import co.com.atlas.usecase.message.MessageRetentionUseCase;
 import co.com.atlas.usecase.notification.NotificationUseCase;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -567,5 +570,18 @@ public class UseCasesConfig {
     public RegisterVehicleExitUseCase registerVehicleExitUseCase(
             AccessEventRepository accessEventRepository) {
         return new RegisterVehicleExitUseCase(accessEventRepository);
+    }
+
+    // Message Use Cases (HU #13)
+    @Bean
+    public ChannelMessageUseCase channelMessageUseCase(
+            ChannelMessageRepository channelMessageRepository) {
+        return new ChannelMessageUseCase(channelMessageRepository);
+    }
+
+    @Bean
+    public MessageRetentionUseCase messageRetentionUseCase(
+            ChannelMessageRepository channelMessageRepository) {
+        return new MessageRetentionUseCase(channelMessageRepository);
     }
 }

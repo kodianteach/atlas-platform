@@ -40,10 +40,12 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/api/auth/register",
             "/api/users/register",
             "/api/external",
+            "/api/invitations",
             "/swagger-ui",
             "/v3/api-docs",
             "/webjars",
-            "/actuator"
+            "/actuator",
+            "/ws/"
     );
 
     private final JwtTokenGateway jwtTokenGateway;
